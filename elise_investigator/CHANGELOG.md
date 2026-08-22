@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.0-beta.16
+
+- Ajustement ergonomique demandé après validation terrain de beta.15 : le bloc résultat est désormais affiché immédiatement sous la demande structurée, juste après le bouton **Enquêter**.
+- Aucun changement du formulaire, de la sélection d'objet, du moteur causal, de l'API ou des règles de preuve.
+- L'agent conversationnel Home Assistant/OpenAI existant reste la couche prévue pour comprendre les phrases naturelles ; il n'est ni remplacé ni modifié par cette version.
+- Aucun nouveau privilège Home Assistant, aucun appel de service mutateur, aucun accès à `/config`, aucun changement AppArmor/Ingress et aucun port supplémentaire.
+
+## 0.1.0-beta.15
+
+- Suppression du champ de phrase libre **Demander à Élise** dans l'interface locale, conformément à la décision de confier la compréhension naturelle à l'agent conversationnel Home Assistant.
+- L'interface locale conserve uniquement le parcours robuste par champs : objet Home Assistant, heure observée, valeur observée, attribut et déclaration utilisateur.
+- Le sélecteur d'objets, les récents, le résultat, les preuves structurées, la copie de diagnostic et la lecture vocale de la réponse sont conservés.
+- `POST /api/v1/investigate` reste l'API structurée principale. `POST /api/v1/ask` est conservé pour compatibilité et pour les futurs raccordements, mais n'est plus exposé comme champ de saisie dans l'interface.
+- L'agent conversationnel Home Assistant/OpenAI existant est conservé tel quel ; aucune modification de sa configuration n'est effectuée par l'app.
+- Aucun nouveau privilège Home Assistant, aucun appel de service mutateur, aucun accès à `/config`, aucun changement AppArmor/Ingress et aucun port supplémentaire.
+
 ## 0.1.0-beta.14
 
 - Retour volontaire aux **principes conversationnels de beta.11** après validation terrain de beta.12 : le texte libre local reste simple et conservateur au lieu d'évoluer vers un moteur linguistique maison.
