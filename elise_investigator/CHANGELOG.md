@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.0-beta.2
+
+- Correction de compatibilité Supervisor : suppression de `watchdog: true`, invalide dans la configuration d'une app Home Assistant.
+- Aucun changement fonctionnel du moteur d'investigation, de l'interface Ingress ni de l'API.
+- Le watchdog Supervisor reste volontairement désactivé jusqu'à l'ajout éventuel d'un véritable endpoint de santé.
+
 ## 0.1.0-beta.1
 
 - Première bêta installable.
