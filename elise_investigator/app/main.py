@@ -14,7 +14,7 @@ from models import InvestigationRequest
 from proof_policy import StrictInvestigator
 from ui import INDEX_HTML
 
-VERSION = "0.1.0-beta.7"
+VERSION = "0.1.0-beta.8"
 DATA_DIR = Path("/data")
 TOKEN_FILE = DATA_DIR / "api_token"
 OPTIONS_FILE = DATA_DIR / "options.json"
@@ -144,6 +144,13 @@ def openapi_schema() -> dict[str, Any]:
                     },
                 }
             },
+            "/api/v1/entities": {
+                "get": {
+                    "summary": "List current Home Assistant entities for the UI picker",
+                    "security": [{"bearerAuth": []}],
+                    "responses": {"200": {"description": "Read-only entity catalog"}},
+                }
+            },
             "/api/v1/health": {
                 "get": {
                     "summary": "Health check",
@@ -188,6 +195,34 @@ async def connection(request: web.Request) -> web.Response:
             "port_enabled_by_default": False,
         }
     )
+
+
+async def entities_catalog(request: web.Request) -> web.Response:
+    """Return a compact, read-only entity catalog for the mobile picker."""
+    try:
+        states = await request.app["ha"].get_all_states()
+        entities: list[dict[str, Any]] = []
+        for item in states:
+            if not isinstance(item, dict):
+                continue
+            entity_id = str(item.get("entity_id") or "").strip()
+            if "." not in entity_id:
+                continue
+            attrs = item.get("attributes") if isinstance(item.get("attributes"), dict) else {}
+            friendly_name = str(attrs.get("friendly_name") or entity_id).strip()
+            entities.append(
+                {
+                    "entity_id": entity_id,
+                    "name": friendly_name,
+                    "domain": entity_id.split(".", 1)[0],
+                    "state": item.get("state"),
+                }
+            )
+        entities.sort(key=lambda entity: (str(entity["name"]).casefold(), entity["entity_id"]))
+        return web.json_response({"entities": entities, "count": len(entities), "read_only": True})
+    except HomeAssistantError as exc:
+        logging.getLogger(__name__).warning("Entity catalog read failed: %s", exc)
+        return web.json_response({"error": str(exc)}, status=503)
 
 
 async def investigate(request: web.Request) -> web.Response:
@@ -278,6 +313,7 @@ async def create_app() -> web.Application:
     add_ingress_get(app, "/health", health)
     add_ingress_get(app, "/api/v1/health", health)
     add_ingress_get(app, "/api/v1/connection", connection)
+    add_ingress_get(app, "/api/v1/entities", entities_catalog)
     add_ingress_get(app, "/api/v1/ai-tool", ai_tool)
     add_ingress_post(app, "/api/v1/investigate", investigate)
     add_ingress_get(app, "/openapi.json", openapi)
