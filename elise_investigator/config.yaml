@@ -1,5 +1,5 @@
 name: "Élise Investigator"
-version: "0.1.0-beta.1"
+version: "0.1.0-beta.2"
 slug: "elise_investigator"
 description: "Explique en lecture seule les causes des événements Home Assistant."
 arch:
@@ -8,7 +8,6 @@ arch:
 init: false
 startup: application
 boot: auto
-watchdog: true
 stage: experimental
 homeassistant_api: true
 ingress: true
