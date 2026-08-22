@@ -24,6 +24,9 @@ profile elise_investigator flags=(attach_disconnected,mediate_deleted) {
   /run/{,**} rwk,
   /dev/tty rw,
 
+  # Bashio / with-contenv startup support.
+  /usr/lib/bashio/** ix,
+
   /usr/lib/** mr,
   /usr/share/** r,
   /lib/** mr,
