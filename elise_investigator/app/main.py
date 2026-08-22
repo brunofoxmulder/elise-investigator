@@ -14,7 +14,7 @@ from investigator import Investigator
 from models import InvestigationRequest
 from ui import INDEX_HTML
 
-VERSION = "0.1.0-beta.4"
+VERSION = "0.1.0-beta.5"
 DATA_DIR = Path("/data")
 TOKEN_FILE = DATA_DIR / "api_token"
 OPTIONS_FILE = DATA_DIR / "options.json"
