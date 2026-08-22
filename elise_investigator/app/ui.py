@@ -103,9 +103,10 @@ function sanitizeForAnalysis(value){
 function buildDiagnosticText(diagnostic){
  const clean=sanitizeForAnalysis(diagnostic);
  const response=clean.response||{};
+ const version=response.meta?.version||'0.1.0-beta.10';
  return [
   'ÉLISE INVESTIGATOR — DIAGNOSTIC POUR ANALYSE',
-  'Version: 0.1.0-beta.9',
+  'Version: '+version,
   'Objet: '+(clean.selection?.label||clean.selection?.entity_id||''),
   'Entity ID: '+(clean.selection?.entity_id||''),
   'Verdict: '+(response.status||''),
