@@ -9,12 +9,13 @@ from typing import Any
 
 from aiohttp import web, ClientSession, ClientTimeout
 
+from conversation import ConversationResolutionError, build_investigation_request
 from ha_client import HAReadOnlyClient, HomeAssistantError
 from models import InvestigationRequest
 from proof_policy import StrictInvestigator
 from ui import INDEX_HTML
 
-VERSION = "0.1.0-beta.10"
+VERSION = "0.1.0-beta.11"
 DATA_DIR = Path("/data")
 TOKEN_FILE = DATA_DIR / "api_token"
 OPTIONS_FILE = DATA_DIR / "options.json"
@@ -97,6 +98,30 @@ def ai_tool_descriptor() -> dict[str, Any]:
     }
 
 
+def conversation_tool_descriptor() -> dict[str, Any]:
+    return {
+        "name": "ask_elise_investigator",
+        "description": (
+            "Répond en lecture seule à une question naturelle du type « Pourquoi la lampe de la salle de bain "
+            "vient de s'allumer ? ». Résout le nom de l'objet, interprète une heure approximative si elle est "
+            "donnée, puis lance le moteur causal sans inventer de cause."
+        ),
+        "input_schema": {
+            "type": "object",
+            "required": ["question"],
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "example": "Élise, pourquoi la lampe de la salle de bain vient de s'allumer ?",
+                }
+            },
+        },
+        "endpoint": "/api/v1/ask",
+        "method": "POST",
+        "read_only": True,
+    }
+
+
 def openapi_schema() -> dict[str, Any]:
     return {
         "openapi": "3.0.3",
@@ -120,10 +145,41 @@ def openapi_schema() -> dict[str, Any]:
                         "user_declaration": {"type": "string", "nullable": True},
                         "window_minutes": {"type": "integer", "minimum": 5, "maximum": 180},
                     },
-                }
+                },
+                "ConversationRequest": {
+                    "type": "object",
+                    "required": ["question"],
+                    "properties": {
+                        "question": {
+                            "type": "string",
+                            "example": "Élise, pourquoi la lampe de la salle de bain vient de s'allumer ?",
+                        }
+                    },
+                },
             },
         },
         "paths": {
+            "/api/v1/ask": {
+                "post": {
+                    "summary": "Ask Élise Investigator a natural-language causal question",
+                    "operationId": "ask_elise_investigator",
+                    "security": [{"bearerAuth": []}],
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/ConversationRequest"}
+                            }
+                        },
+                    },
+                    "responses": {
+                        "200": {"description": "Conversational answer plus structured investigation"},
+                        "400": {"description": "Question invalid or entity not recognized"},
+                        "409": {"description": "Entity reference is ambiguous"},
+                        "503": {"description": "Home Assistant unavailable"},
+                    },
+                }
+            },
             "/api/v1/investigate": {
                 "post": {
                     "summary": "Investigate why a Home Assistant entity changed",
@@ -190,6 +246,7 @@ async def connection(request: web.Request) -> web.Response:
         {
             "api_token": request.app["api_token"],
             "endpoint": "/api/v1/investigate",
+            "conversation_endpoint": "/api/v1/ask",
             "openapi": "/openapi.json",
             "port": 8099,
             "port_enabled_by_default": False,
@@ -225,6 +282,46 @@ async def entities_catalog(request: web.Request) -> web.Response:
         return web.json_response({"error": str(exc)}, status=503)
 
 
+async def ask(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+    except Exception:
+        return web.json_response({"error": "Corps JSON invalide"}, status=400)
+    if not isinstance(data, dict) or not str(data.get("question") or "").strip():
+        return web.json_response({"error": "question est obligatoire"}, status=400)
+
+    try:
+        investigation_request, interpretation = await build_investigation_request(
+            str(data["question"]),
+            ha=request.app["ha"],
+        )
+        result = await request.app["investigator"].investigate(investigation_request)
+        return web.json_response(
+            {
+                "status": result.status,
+                "answer_text": result.answer_text,
+                "interpretation": interpretation,
+                "investigation": result.to_dict(),
+                "read_only": True,
+                "version": VERSION,
+            }
+        )
+    except ConversationResolutionError as exc:
+        status = 409 if exc.candidates else 400
+        return web.json_response(
+            {"error": str(exc), "candidates": exc.candidates, "read_only": True, "version": VERSION},
+            status=status,
+        )
+    except ValueError as exc:
+        return web.json_response({"error": str(exc)}, status=400)
+    except HomeAssistantError as exc:
+        logging.getLogger(__name__).warning("Home Assistant conversational read failed: %s", exc)
+        return web.json_response({"error": str(exc)}, status=503)
+    except Exception as exc:
+        logging.getLogger(__name__).exception("Conversational investigation failed")
+        return web.json_response({"error": f"Erreur interne: {exc}"}, status=500)
+
+
 async def investigate(request: web.Request) -> web.Response:
     try:
         data = await request.json()
@@ -255,6 +352,10 @@ async def investigate(request: web.Request) -> web.Response:
 
 async def ai_tool(request: web.Request) -> web.Response:
     return web.json_response(ai_tool_descriptor())
+
+
+async def conversation_tool(request: web.Request) -> web.Response:
+    return web.json_response(conversation_tool_descriptor())
 
 
 async def openapi(request: web.Request) -> web.Response:
@@ -315,6 +416,8 @@ async def create_app() -> web.Application:
     add_ingress_get(app, "/api/v1/connection", connection)
     add_ingress_get(app, "/api/v1/entities", entities_catalog)
     add_ingress_get(app, "/api/v1/ai-tool", ai_tool)
+    add_ingress_get(app, "/api/v1/conversation-tool", conversation_tool)
+    add_ingress_post(app, "/api/v1/ask", ask)
     add_ingress_post(app, "/api/v1/investigate", investigate)
     add_ingress_get(app, "/openapi.json", openapi)
 
