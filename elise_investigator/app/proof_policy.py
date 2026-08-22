@@ -6,7 +6,7 @@ from typing import Any
 from investigator import Investigator, _extract_service_actions
 from models import InvestigationRequest, InvestigationResult
 
-VERSION = "0.1.0-beta.10"
+VERSION = "0.1.0-beta.11"
 
 
 def executed_trace_actions(detail: dict[str, Any] | None, target_entity: str) -> list[dict[str, Any]]:
