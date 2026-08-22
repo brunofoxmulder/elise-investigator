@@ -5,7 +5,7 @@ from typing import Any
 from investigator import Investigator, _extract_service_actions
 from models import InvestigationRequest, InvestigationResult
 
-VERSION = "0.1.0-beta.7"
+VERSION = "0.1.0-beta.8"
 
 
 def executed_trace_actions(detail: dict[str, Any] | None, target_entity: str) -> list[dict[str, Any]]:
@@ -67,7 +67,7 @@ def enforce_result_policy(result: InvestigationResult) -> InvestigationResult:
 
 
 class StrictInvestigator(Investigator):
-    """Investigator with the beta.7 conservative causal-proof policy."""
+    """Investigator with the conservative causal-proof policy introduced in beta.7."""
 
     async def _reverse_search(self, entity_id: str, event_time):
         candidates = await super()._reverse_search(entity_id, event_time)
@@ -91,6 +91,6 @@ class StrictInvestigator(Investigator):
     async def investigate(self, request: InvestigationRequest) -> InvestigationResult:
         result = await super().investigate(request)
         enforce_result_policy(result)
-        # The base engine builds answer_text before the beta.7 policy is applied.
+        # The base engine builds answer_text before the policy is applied.
         result.answer_text = self._build_answer(result)
         return result
