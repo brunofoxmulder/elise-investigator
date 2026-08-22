@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0-beta.12
+
+- Amélioration du mode conversationnel après le test réel « Pourquoi la lampe du salon est allumée ? » : les mots de type d'objet servent désormais de critères de désambiguïsation entre plusieurs entités portant le même nom convivial.
+- Les indices de domaine à forte confiance comprennent notamment `lampe/lumière/éclairage → light`, `volet/store → cover`, `clim/chauffage/thermostat → climate`, `prise/interrupteur → switch` et `serrure/verrou → lock`.
+- Les modes HVAC explicites tels que « passer en cool/heat/dry/fan_only/auto » peuvent également départager une entité `climate` nommée simplement « Salon » d'une lampe ou d'un volet portant le même nom.
+- Ces indices ne créent jamais de cible : ils servent uniquement de départage entre des entités Home Assistant qui correspondent déjà aux mots de la question.
+- Un `entity_id` écrit explicitement reste prioritaire sur toute interprétation naturelle.
+- Si aucune indication ne permet de départager plusieurs objets, Élise continue de répondre « à préciser » plutôt que de deviner.
+- L'interprétation structurée expose désormais le domaine de l'entité retenue et les indices de domaine utilisés, afin de faciliter le diagnostic des futures formulations.
+- Ajout de tests de régression pour « lampe du salon », « volet du salon », « Salon en cool », l'ambiguïté volontaire sans indice de domaine et la priorité de l'`entity_id` explicite.
+- Aucun modèle d'IA n'est appelé pour cette résolution dans beta.12 : le comportement reste local, déterministe et sans coût/latence réseau supplémentaire.
+- La politique causale beta.10 reste inchangée ; seul son numéro de version interne est aligné sur beta.12.
+- Aucun nouveau privilège Home Assistant, aucun appel de service mutateur, aucun accès à `/config`, aucun changement AppArmor/Ingress et aucun port supplémentaire.
+
 ## 0.1.0-beta.11
 
 - Ajout d'un **mode conversationnel** : l'utilisateur peut écrire une question naturelle telle que « Élise, pourquoi la lampe de la salle de bain vient de s'allumer ? ».
