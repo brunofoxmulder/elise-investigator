@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.1.0-beta.11
+
+- Ajout d'un **mode conversationnel** : l'utilisateur peut écrire une question naturelle telle que « Élise, pourquoi la lampe de la salle de bain vient de s'allumer ? ».
+- Ajout de l'endpoint lecture seule `POST /api/v1/ask`, qui résout prudemment le nom convivial de l'objet, interprète une valeur d'état simple et une heure approximative éventuelle, puis transmet une requête structurée au moteur causal existant.
+- La résolution d'objet privilégie les `entity_id` explicites et les noms conviviaux complets ; un rapprochement par mots n'est utilisé qu'en secours. En cas d'ambiguïté, la version refuse de deviner et retourne les candidats.
+- Interprétation de quelques formulations utiles : allumage/extinction, ouverture/fermeture, modes clim `cool`, `heat`, `off`, `auto`, `dry`, `fan_only`, heure « vers 22h05 », « hier vers 18h », date `22/08`, ou « il y a 10 minutes ».
+- Une formulation « vient de… » sans heure reste volontairement sans timestamp artificiel afin de laisser Investigator chercher le dernier événement réel dans sa fenêtre normale.
+- Ajout dans l'interface d'un bloc **« Demander à Élise »** au-dessus du mode précis. Le formulaire structuré historique reste disponible sans modification de son contrat.
+- Ajout d'un bouton utilisateur **« Écouter la réponse »** lorsque la synthèse vocale du navigateur est disponible. Aucun son n'est envoyé au serveur par cette fonction ; elle ne déclenche qu'une lecture de la réponse déjà affichée côté navigateur.
+- Ajout d'un descripteur machine `GET /api/v1/conversation-tool` et documentation OpenAPI de `/api/v1/ask` pour préparer le raccordement ultérieur à une IA conversationnelle/voix.
+- Ajout de tests unitaires dédiés à la résolution naturelle d'entité, aux états et aux heures approximatives.
+- La politique causale beta.10 reste inchangée, hormis l'alignement du numéro de version interne sur beta.11.
+- Aucun nouveau privilège Home Assistant, aucun appel de service mutateur, aucun accès à `/config`, aucun changement AppArmor/Ingress et aucun port supplémentaire.
+
 ## 0.1.0-beta.10
 
 - Correction d'un faux événement `None → état` observé quand l'API History renvoie l'état déjà actif exactement au début de la fenêtre examinée.
