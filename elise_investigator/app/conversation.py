@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -177,7 +177,7 @@ def parse_observed_value(question: str) -> str | None:
     return None
 
 
-def _parse_explicit_date(qnorm: str, now: datetime) -> datetime.date:
+def _parse_explicit_date(qnorm: str, now: datetime) -> date:
     date_match = re.search(r"\b(\d{1,2})[/-](\d{1,2})(?:[/-](\d{2,4}))?\b", qnorm)
     if date_match:
         day = int(date_match.group(1))
@@ -206,12 +206,12 @@ def parse_observed_time(question: str, tz: ZoneInfo, *, now: datetime | None = N
     if relative:
         return (current - timedelta(minutes=int(relative.group(1)))).isoformat()
 
-    time_match = re.search(r"\b(\d{1,2})(?:\s*[h:]\s*(\d{1,2}))\b", q)
+    time_match = re.search(r"\b(\d{1,2})\s*(?:h\s*(\d{1,2})?|:\s*(\d{1,2}))\b", q)
     if not time_match:
         return None
 
     hour = int(time_match.group(1))
-    minute = int(time_match.group(2) or 0)
+    minute = int(time_match.group(2) or time_match.group(3) or 0)
     if hour > 23 or minute > 59:
         return None
 
