@@ -9,6 +9,10 @@ COPY app /app
 COPY run.sh /run.sh
 RUN chmod 0755 /run.sh
 
+# Make the application directory explicit for Python imports at runtime.
+WORKDIR /app
+ENV PYTHONPATH=/app
+
 LABEL \
   io.hass.version="${BUILD_VERSION}" \
   io.hass.type="app" \
