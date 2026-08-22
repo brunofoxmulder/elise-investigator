@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-beta.5
+
+- Correction de l'accès au jeton Supervisor après validation du runtime Python en beta.4.
+- `run.sh` utilise désormais le shebang officiel Home Assistant `#!/usr/bin/with-contenv bashio` afin de transmettre les variables d'environnement Supervisor au processus Python.
+- Le profil AppArmor autorise explicitement l'exécution de Bashio via `/usr/lib/bashio/**` sans désactiver AppArmor.
+- `homeassistant_api: true` reste inchangé ; aucun accès Supervisor supplémentaire (`hassio_api`) n'est ajouté.
+- Aucun changement du moteur causal, aucun accès à `/config`, aucun service Home Assistant mutateur et aucun port externe activé.
+- Version interne de l'API alignée sur `0.1.0-beta.5`.
+
 ## 0.1.0-beta.4
 
 - Correction du démarrage Python après validation du bootstrap S6/AppArmor de la beta.3.
