@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-beta.4
+
+- Correction du démarrage Python après validation du bootstrap S6/AppArmor de la beta.3.
+- `WORKDIR /app` et `PYTHONPATH=/app` sont désormais explicites dans l'image.
+- `run.sh` démarre depuis `/app` avant de lancer `main.py`.
+- Le profil AppArmor autorise explicitement la lecture du répertoire `/app/` en plus de ses fichiers.
+- Aucun changement du moteur causal, aucun accès à `/config`, aucun service Home Assistant mutateur et aucun port externe activé.
+- Version interne de l'API alignée sur `0.1.0-beta.4`.
+
 ## 0.1.0-beta.3
 
 - Correction du démarrage sous AppArmor avec l'image de base Home Assistant et S6-Overlay.
