@@ -15,7 +15,7 @@ from models import InvestigationRequest
 from proof_policy import StrictInvestigator
 from ui import INDEX_HTML
 
-VERSION = "0.1.0-beta.12"
+VERSION = "0.1.0-beta.14"
 DATA_DIR = Path("/data")
 TOKEN_FILE = DATA_DIR / "api_token"
 OPTIONS_FILE = DATA_DIR / "options.json"
