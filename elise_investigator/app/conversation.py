@@ -93,38 +93,8 @@ _STOPWORDS = {
 }
 
 
-# High-confidence household nouns used only as a conservative tie-breaker. They do not
-# create entities and never override an explicit entity_id. The goal is to understand
-# phrases such as "la lampe du salon" when Home Assistant exposes several objects all
-# named simply "Salon".
-_DOMAIN_CUES: dict[str, set[str]] = {
-    "light": {"lampe", "lampes", "lumiere", "lumieres", "eclairage", "eclairages", "ampoule", "ampoules"},
-    "cover": {"volet", "volets", "store", "stores"},
-    "climate": {"clim", "climatisation", "climatiseur", "chauffage", "thermostat"},
-    "switch": {"prise", "prises", "interrupteur", "interrupteurs"},
-    "lock": {"serrure", "serrures", "verrou", "verrous"},
-}
-
-
 def _content_tokens(value: Any) -> set[str]:
     return {token for token in _words(value) if token not in _STOPWORDS and not token.isdigit()}
-
-
-def infer_domain_hints(question: str) -> set[str]:
-    """Infer only strong Home Assistant domain hints from natural language.
-
-    This is deliberately small and deterministic. A hint is a tie-breaker between already
-    matching Home Assistant entities, not permission to guess an unrelated entity.
-    """
-    words = set(_words(question))
-    hints = {domain for domain, cues in _DOMAIN_CUES.items() if words & cues}
-
-    # HVAC mode words can disambiguate an entity called simply "Salon" without requiring
-    # the user to say "clim" explicitly.
-    qnorm = _norm(question)
-    if re.search(r"\b(?:en|mode)\s+(?:cool|heat|dry|fan_only|auto)\b", qnorm):
-        hints.add("climate")
-    return hints
 
 
 def _entity_rows(states: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -144,15 +114,12 @@ def _entity_rows(states: list[dict[str, Any]]) -> list[dict[str, str]]:
 def resolve_entity(question: str, states: list[dict[str, Any]]) -> dict[str, str]:
     """Resolve a natural-language entity mention conservatively.
 
-    Exact entity IDs and full friendly-name phrases win. Token matching is only a fallback.
-    Strong object nouns such as "lampe", "volet" or "clim" are used as a domain tie-breaker
-    between entities that already match the wording. Unresolved ties stay ambiguous instead
-    of being guessed.
+    Exact entity IDs and full friendly-name phrases win. Token matching is only a fallback,
+    and ties stay ambiguous instead of being guessed.
     """
     qnorm = _norm(question)
     qtokens = _content_tokens(question)
-    domain_hints = infer_domain_hints(question)
-    scored: list[tuple[tuple[int, int, int, int], dict[str, str]]] = []
+    scored: list[tuple[tuple[int, int, int], dict[str, str]]] = []
 
     for row in _entity_rows(states):
         entity_id = row["entity_id"]
@@ -161,19 +128,15 @@ def resolve_entity(question: str, states: list[dict[str, Any]]) -> dict[str, str
         name_norm = _norm(name)
         name_tokens = _content_tokens(name)
 
-        # Explicit entity_id always wins, even if the surrounding natural language contains
-        # a conflicting noun. This keeps the precise mode fully deterministic.
         if id_norm and id_norm in qnorm:
-            score = (0, 0, -len(id_norm), 0)
+            score = (0, -len(id_norm), 0)
+        elif name_norm and re.search(rf"(?<![a-z0-9]){re.escape(name_norm)}(?![a-z0-9])", qnorm):
+            score = (1, -len(name_norm), 0)
+        elif name_tokens and name_tokens.issubset(qtokens):
+            # Prefer the most specific name, then the one with the least extra wording.
+            score = (2, -len(name_tokens), len(_words(name)))
         else:
-            domain_penalty = 0 if not domain_hints or row["domain"] in domain_hints else 1
-            if name_norm and re.search(rf"(?<![a-z0-9]){re.escape(name_norm)}(?![a-z0-9])", qnorm):
-                score = (1, domain_penalty, -len(name_norm), 0)
-            elif name_tokens and name_tokens.issubset(qtokens):
-                # Prefer the right hinted domain, then the most specific name.
-                score = (2, domain_penalty, -len(name_tokens), len(_words(name)))
-            else:
-                continue
+            continue
         scored.append((score, row))
 
     if not scored:
@@ -293,7 +256,6 @@ async def build_investigation_request(
 
     observed_time = parse_observed_time(text, tz)
     observed_value = parse_observed_value(text)
-    domain_hints = sorted(infer_domain_hints(text))
     request = InvestigationRequest(
         entity_id=entity["entity_id"],
         observed_time=observed_time,
@@ -303,8 +265,6 @@ async def build_investigation_request(
         "question": text,
         "entity_id": entity["entity_id"],
         "entity_name": entity["name"],
-        "entity_domain": entity["domain"],
-        "domain_hints": domain_hints,
         "observed_time": observed_time,
         "observed_value": observed_value,
         "time_zone": tz.key,
