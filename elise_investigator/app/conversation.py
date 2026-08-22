@@ -23,7 +23,7 @@ def _norm(value: Any) -> str:
     text = unicodedata.normalize("NFD", str(value or ""))
     text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
     text = text.lower().replace("’", "'")
-    text = re.sub(r"[^a-z0-9_.:'\-]+", " ", text)
+    text = re.sub(r"[^a-z0-9_.:'/\\-]+", " ", text)
     return re.sub(r"\s+", " ", text).strip()
 
 
