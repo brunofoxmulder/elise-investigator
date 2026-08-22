@@ -5,7 +5,7 @@ from pathlib import Path
 APP = Path(__file__).resolve().parents[1] / "elise_investigator" / "app"
 sys.path.insert(0, str(APP))
 
-from models import Evidence, InvestigationResult
+from models import Evidence, InvestigationRequest, InvestigationResult
 from proof_policy import enforce_result_policy, executed_trace_actions
 
 
@@ -75,6 +75,88 @@ class ProofPolicyTests(unittest.TestCase):
         self.assertFalse(result.cause["system_confirmed"])
         self.assertTrue(all(item.strength == "supporting" for item in result.evidence))
         self.assertTrue(result.meta["rules"]["multiple_traces_do_not_prove_unique_cause"])
+
+    def test_history_boundary_state_is_not_treated_as_none_to_state_event(self):
+        result = InvestigationResult(
+            status="indeterminate",
+            entity_id="light.lampe_tele",
+            entity_name="lampe télé",
+            event_type="state_change",
+            event_time="2026-08-22T20:20:18.258506+00:00",
+            observed={
+                "before": None,
+                "after": "on",
+                "attribute": None,
+                "description": "lampe télé est passée de None à on.",
+            },
+            cause={"type": "unknown", "entity_id": None, "name": None, "system_confirmed": False},
+            chain=[],
+            evidence=[
+                Evidence(
+                    kind="history",
+                    summary="Événement enregistré par le Recorder: None → on",
+                    timestamp="2026-08-22T20:20:18.258506+00:00",
+                    strength="direct",
+                    raw={"previous": None, "event": {"state": "on"}},
+                )
+            ],
+            candidates=[{"entity_id": "automation.example"}],
+            limits=["La recherche inverse trouve des candidats, mais aucune exécution précise n'est prouvée."],
+            meta={
+                "window": {
+                    "start": "2026-08-22T20:20:18.258506+00:00",
+                    "end": "2026-08-22T20:50:18.258506+00:00",
+                },
+                "rules": {},
+            },
+        )
+        request = InvestigationRequest(entity_id="light.lampe_tele")
+
+        enforce_result_policy(result, request=request)
+
+        self.assertEqual(result.status, "indeterminate")
+        self.assertEqual(result.event_type, "window_boundary_state")
+        self.assertIsNone(result.event_time)
+        self.assertEqual(result.cause["type"], "unknown")
+        self.assertEqual(result.candidates, [])
+        self.assertEqual(result.evidence[0].strength, "supporting")
+        self.assertIn("début de la période", result.observed["description"])
+        self.assertTrue(result.meta["rules"]["window_boundary_is_not_event"])
+
+    def test_explicit_observed_time_prevents_boundary_downgrade(self):
+        result = InvestigationResult(
+            status="indeterminate",
+            entity_id="light.lampe_tele",
+            entity_name="lampe télé",
+            event_type="state_change",
+            event_time="2026-08-22T20:20:18.258506+00:00",
+            observed={"before": None, "after": "on", "description": "lampe télé est passée de None à on."},
+            cause={"type": "unknown", "entity_id": None, "name": None, "system_confirmed": False},
+            evidence=[
+                Evidence(
+                    kind="history",
+                    summary="Événement enregistré par le Recorder: None → on",
+                    strength="direct",
+                    raw={"previous": None, "event": {"state": "on"}},
+                )
+            ],
+            meta={
+                "window": {
+                    "start": "2026-08-22T20:20:18.258506+00:00",
+                    "end": "2026-08-22T20:50:18.258506+00:00",
+                },
+                "rules": {},
+            },
+        )
+        request = InvestigationRequest(
+            entity_id="light.lampe_tele",
+            observed_time="2026-08-22T20:50:18.258506+00:00",
+        )
+
+        enforce_result_policy(result, request=request)
+
+        self.assertEqual(result.event_type, "state_change")
+        self.assertEqual(result.event_time, "2026-08-22T20:20:18.258506+00:00")
 
 
 if __name__ == "__main__":
