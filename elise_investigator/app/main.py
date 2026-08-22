@@ -14,7 +14,7 @@ from investigator import Investigator
 from models import InvestigationRequest
 from ui import INDEX_HTML
 
-VERSION = "0.1.0-beta.5"
+VERSION = "0.1.0-beta.6"
 DATA_DIR = Path("/data")
 TOKEN_FILE = DATA_DIR / "api_token"
 OPTIONS_FILE = DATA_DIR / "options.json"
@@ -100,7 +100,11 @@ def ai_tool_descriptor() -> dict[str, Any]:
 def openapi_schema() -> dict[str, Any]:
     return {
         "openapi": "3.0.3",
-        "info": {"title": "Élise Investigator API", "version": VERSION, "description": "Read-only causal investigation for Home Assistant."},
+        "info": {
+            "title": "Élise Investigator API",
+            "version": VERSION,
+            "description": "Read-only causal investigation for Home Assistant.",
+        },
         "servers": [{"url": "/"}],
         "components": {
             "securitySchemes": {"bearerAuth": {"type": "http", "scheme": "bearer"}},
@@ -125,37 +129,65 @@ def openapi_schema() -> dict[str, Any]:
                     "summary": "Investigate why a Home Assistant entity changed",
                     "operationId": "investigate_entity",
                     "security": [{"bearerAuth": []}],
-                    "requestBody": {"required": True, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/InvestigationRequest"}}}},
-                    "responses": {"200": {"description": "Structured causal investigation"}, "400": {"description": "Invalid request"}, "503": {"description": "Home Assistant unavailable"}},
+                    "requestBody": {
+                        "required": True,
+                        "content": {
+                            "application/json": {
+                                "schema": {"$ref": "#/components/schemas/InvestigationRequest"}
+                            }
+                        },
+                    },
+                    "responses": {
+                        "200": {"description": "Structured causal investigation"},
+                        "400": {"description": "Invalid request"},
+                        "503": {"description": "Home Assistant unavailable"},
+                    },
                 }
             },
-            "/api/v1/health": {"get": {"summary": "Health check", "responses": {"200": {"description": "Healthy"}}}},
+            "/api/v1/health": {
+                "get": {
+                    "summary": "Health check",
+                    "responses": {"200": {"description": "Healthy"}},
+                }
+            },
         },
     }
 
 
 async def index(request: web.Request) -> web.Response:
+    if request.path != "/":
+        logging.getLogger(__name__).info(
+            "Ingress root compatibility route matched path=%r x_ingress_path=%r",
+            request.path,
+            request.headers.get("X-Ingress-Path"),
+        )
     return web.Response(text=INDEX_HTML, content_type="text/html")
 
 
 async def health(request: web.Request) -> web.Response:
     try:
         state = await request.app["ha"].get_config()
-        return web.json_response({"ok": True, "version": VERSION, "home_assistant": state.get("version"), "read_only": True})
+        return web.json_response(
+            {"ok": True, "version": VERSION, "home_assistant": state.get("version"), "read_only": True}
+        )
     except Exception as exc:
-        return web.json_response({"ok": False, "version": VERSION, "error": str(exc), "read_only": True}, status=503)
+        return web.json_response(
+            {"ok": False, "version": VERSION, "error": str(exc), "read_only": True}, status=503
+        )
 
 
 async def connection(request: web.Request) -> web.Response:
     if not is_ingress_request(request):
         return web.json_response({"error": "available_through_ingress_only"}, status=403)
-    return web.json_response({
-        "api_token": request.app["api_token"],
-        "endpoint": "/api/v1/investigate",
-        "openapi": "/openapi.json",
-        "port": 8099,
-        "port_enabled_by_default": False,
-    })
+    return web.json_response(
+        {
+            "api_token": request.app["api_token"],
+            "endpoint": "/api/v1/investigate",
+            "openapi": "/openapi.json",
+            "port": 8099,
+            "port_enabled_by_default": False,
+        }
+    )
 
 
 async def investigate(request: web.Request) -> web.Response:
@@ -198,11 +230,32 @@ async def on_cleanup(app: web.Application) -> None:
     await app["session"].close()
 
 
+def add_ingress_get(app: web.Application, path: str, handler) -> None:
+    """Register the canonical GET route and a double-leading-slash Ingress alias."""
+    app.router.add_get(path, handler)
+    ingress_alias = f"/{path}"
+    if ingress_alias != path:
+        app.router.add_get(ingress_alias, handler)
+
+
+def add_ingress_post(app: web.Application, path: str, handler) -> None:
+    """Register the canonical POST route and a double-leading-slash Ingress alias."""
+    app.router.add_post(path, handler)
+    ingress_alias = f"/{path}"
+    if ingress_alias != path:
+        app.router.add_post(ingress_alias, handler)
+
+
 async def create_app() -> web.Application:
     options = load_options()
     level = str(options.get("log_level", "info")).upper()
-    logging.basicConfig(level=getattr(logging, level, logging.INFO), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
-    logging.getLogger(__name__).info("Starting Élise Investigator %s in strict read-only mode", VERSION)
+    logging.basicConfig(
+        level=getattr(logging, level, logging.INFO),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
+    logging.getLogger(__name__).info(
+        "Starting Élise Investigator %s in strict read-only mode", VERSION
+    )
 
     session = ClientSession(timeout=ClientTimeout(total=25))
     ha = HAReadOnlyClient(session)
@@ -216,13 +269,19 @@ async def create_app() -> web.Application:
     app["ha"] = ha
     app["investigator"] = investigator_engine
     app["api_token"] = load_or_create_api_token()
-    app.router.add_get("/", index)
-    app.router.add_get("/health", health)
-    app.router.add_get("/api/v1/health", health)
-    app.router.add_get("/api/v1/connection", connection)
-    app.router.add_get("/api/v1/ai-tool", ai_tool)
-    app.router.add_post("/api/v1/investigate", investigate)
-    app.router.add_get("/openapi.json", openapi)
+
+    # Home Assistant Ingress normally forwards a single leading slash. The
+    # beta.5 HAOS test showed a 404 at the Web UI entry point, compatible with
+    # an extra leading slash. Register narrow aliases for our known routes
+    # rather than using a catch-all route that could hide API mistakes.
+    add_ingress_get(app, "/", index)
+    add_ingress_get(app, "/health", health)
+    add_ingress_get(app, "/api/v1/health", health)
+    add_ingress_get(app, "/api/v1/connection", connection)
+    add_ingress_get(app, "/api/v1/ai-tool", ai_tool)
+    add_ingress_post(app, "/api/v1/investigate", investigate)
+    add_ingress_get(app, "/openapi.json", openapi)
+
     app.on_cleanup.append(on_cleanup)
     return app
 
