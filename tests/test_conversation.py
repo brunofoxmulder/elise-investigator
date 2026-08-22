@@ -59,6 +59,18 @@ class ConversationTests(unittest.TestCase):
         parsed = parse_observed_time("Pourquoi le volet terrasse s'est fermé vers 22h05 ?", tz, now=now)
         self.assertEqual(parsed, "2026-08-22T22:05:00+02:00")
 
+    def test_hour_without_minutes_is_supported(self):
+        tz = ZoneInfo("Europe/Paris")
+        now = datetime(2026, 8, 22, 23, 15, tzinfo=tz)
+        parsed = parse_observed_time("hier vers 18h", tz, now=now)
+        self.assertEqual(parsed, "2026-08-21T18:00:00+02:00")
+
+    def test_explicit_day_month_is_preserved(self):
+        tz = ZoneInfo("Europe/Paris")
+        now = datetime(2026, 8, 22, 23, 15, tzinfo=tz)
+        parsed = parse_observed_time("le 22/08 vers 20h05", tz, now=now)
+        self.assertEqual(parsed, "2026-08-22T20:05:00+02:00")
+
     def test_clock_time_after_midnight_can_mean_previous_evening(self):
         tz = ZoneInfo("Europe/Paris")
         now = datetime(2026, 8, 23, 0, 30, tzinfo=tz)
