@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-beta.7
+
+- Correction de la logique de preuve causale après le premier test fonctionnel réel sur le volet salon.
+- Une simple mention de l'entité dans la configuration contenue dans une trace n'est plus considérée comme une action exécutée : seule la branche runtime `trace` est examinée pour prouver une action vers la cible.
+- Lorsque plusieurs exécutions proches ont réellement ciblé la même entité, le verdict devient désormais `indeterminate` avec des candidats documentés au lieu de `confirmed`.
+- Les traces ambiguës restent conservées comme preuves de support, mais ne sont plus présentées comme attribution causale directe.
+- Le texte de réponse évite désormais la contradiction « cause confirmée » / « aucune cause système établie » dans ce cas.
+- Aucun changement des permissions Home Assistant, d'Ingress, d'AppArmor, de `/config` ou des ports exposés.
+- Version interne du moteur/policy alignée sur `0.1.0-beta.7`.
+
 ## 0.1.0-beta.6
 
 - Correction de compatibilité de l'entrée Web UI Ingress après validation du démarrage complet de la beta.5 sur HAOS.
