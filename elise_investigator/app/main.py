@@ -14,7 +14,7 @@ from investigator import Investigator
 from models import InvestigationRequest
 from ui import INDEX_HTML
 
-VERSION = "0.1.0-beta.1"
+VERSION = "0.1.0-beta.3"
 DATA_DIR = Path("/data")
 TOKEN_FILE = DATA_DIR / "api_token"
 OPTIONS_FILE = DATA_DIR / "options.json"
@@ -71,7 +71,6 @@ async def access_guard(request: web.Request, handler):
     return web.Response(text="Accès direct à l'interface refusé. Utilisez Home Assistant Ingress.", status=403)
 
 
-
 def ai_tool_descriptor() -> dict[str, Any]:
     return {
         "name": "investigate_home_assistant_event",
@@ -96,6 +95,7 @@ def ai_tool_descriptor() -> dict[str, Any]:
         "method": "POST",
         "read_only": True,
     }
+
 
 def openapi_schema() -> dict[str, Any]:
     return {
