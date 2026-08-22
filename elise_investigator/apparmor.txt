@@ -10,18 +10,28 @@ profile elise_investigator flags=(attach_disconnected,mediate_deleted) {
 
   signal (send) set=(kill,term,int,hup,cont),
 
-  /init ix,
-  /bin/** ix,
-  /usr/bin/** ix,
+  # S6-Overlay startup paths required by the Home Assistant base image.
+  # Keep this explicit rather than disabling AppArmor or granting generic file access.
+  /init rix,
+  /bin/** rix,
+  /usr/bin/** rix,
+  /run/{s6,s6-rc*,service}/** rix,
+  /package/** rix,
+  /command/** rix,
+  /etc/services.d/** rwix,
+  /etc/cont-init.d/** rwix,
+  /etc/cont-finish.d/** rwix,
+  /run/{,**} rwk,
+  /dev/tty rw,
+
   /usr/lib/** mr,
   /usr/share/** r,
   /lib/** mr,
   /app/** rix,
-  /run.sh ix,
+  /run.sh rix,
 
   /data/** rwk,
   /tmp/** rwk,
-  /run/** rwk,
   /etc/** r,
   /dev/null rw,
   /dev/urandom r,
