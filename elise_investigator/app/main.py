@@ -10,11 +10,11 @@ from typing import Any
 from aiohttp import web, ClientSession, ClientTimeout
 
 from ha_client import HAReadOnlyClient, HomeAssistantError
-from investigator import Investigator
 from models import InvestigationRequest
+from proof_policy import StrictInvestigator
 from ui import INDEX_HTML
 
-VERSION = "0.1.0-beta.6"
+VERSION = "0.1.0-beta.7"
 DATA_DIR = Path("/data")
 TOKEN_FILE = DATA_DIR / "api_token"
 OPTIONS_FILE = DATA_DIR / "options.json"
@@ -259,7 +259,7 @@ async def create_app() -> web.Application:
 
     session = ClientSession(timeout=ClientTimeout(total=25))
     ha = HAReadOnlyClient(session)
-    investigator_engine = Investigator(
+    investigator_engine = StrictInvestigator(
         ha,
         default_window_minutes=int(options.get("default_window_minutes", 30)),
         max_reverse_candidates=int(options.get("max_reverse_candidates", 25)),
