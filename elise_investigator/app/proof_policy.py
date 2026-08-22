@@ -6,7 +6,7 @@ from typing import Any
 from investigator import Investigator, _extract_service_actions
 from models import InvestigationRequest, InvestigationResult
 
-VERSION = "0.1.0-beta.15"
+VERSION = "0.1.0-beta.16"
 
 
 def executed_trace_actions(detail: dict[str, Any] | None, target_entity: str) -> list[dict[str, Any]]:
@@ -82,8 +82,6 @@ def _apply_window_boundary_policy(result: InvestigationResult) -> None:
         "system_confirmed": False,
     }
     result.chain = []
-    # Reverse-search candidates and nearby trace/logbook evidence were computed around a
-    # timestamp that is not an event. Keeping them would invite false causal attribution.
     result.candidates = []
 
     kept_evidence = []
@@ -129,9 +127,6 @@ def enforce_result_policy(
             "sources": sources,
         }
 
-        # The executions themselves are evidenced, but attribution of the observed state
-        # change to one of them is not. Keep the evidence while downgrading its causal
-        # strength.
         for evidence in result.evidence:
             if evidence.kind == "trace" and evidence.source in sources:
                 evidence.strength = "supporting"
@@ -164,9 +159,6 @@ class StrictInvestigator(Investigator):
     async def _reverse_search(self, entity_id: str, event_time):
         candidates = await super()._reverse_search(entity_id, event_time)
         for candidate in candidates:
-            # Re-evaluate the legacy flag using executed trace nodes only. This prevents a
-            # target appearing merely in stored automation configuration from being treated
-            # as proof of execution.
             candidate.target_proven = bool(executed_trace_actions(candidate.trace, entity_id))
         return candidates
 
@@ -189,6 +181,5 @@ class StrictInvestigator(Investigator):
     async def investigate(self, request: InvestigationRequest) -> InvestigationResult:
         result = await super().investigate(request)
         enforce_result_policy(result, request=request)
-        # The base engine builds answer_text before the policy is applied.
         result.answer_text = self._build_answer(result)
         return result
