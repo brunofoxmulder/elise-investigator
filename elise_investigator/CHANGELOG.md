@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-beta.9
+
+- Ajout d'un bouton **« Copier le diagnostic pour Élise »** pour les verdicts `probable` et `indeterminate` uniquement.
+- La copie est strictement déclenchée par l'utilisateur : aucun envoi automatique, aucun stockage serveur et aucun appel réseau supplémentaire.
+- Le texte copié contient l'objet sélectionné, l'`entity_id`, la requête d'investigation, le verdict, le texte de réponse et les preuves structurées nécessaires à une analyse externe.
+- Ajout d'une redaction défensive des clés sensibles (`token`, `authorization`, `secret`, `password`, clés API / access tokens) et des chaînes `Bearer ...` avant copie dans le presse-papiers.
+- Le jeton de connexion affiché dans l'interface n'est jamais inclus dans le diagnostic copié.
+- Fallback de copie compatible avec les WebView ne disposant pas de `navigator.clipboard`.
+- Aucun changement du moteur causal, des permissions Home Assistant, d'Ingress, d'AppArmor, des ports ou du contrat lecture seule.
+
 ## 0.1.0-beta.8
 
 - Amélioration ergonomique mobile : remplacement de la saisie brute d'`entity_id` par un sélecteur d'objets Home Assistant intégré.
