@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.0-beta.10
+
+- Correction d'un faux événement `None → état` observé quand l'API History renvoie l'état déjà actif exactement au début de la fenêtre examinée.
+- Sans heure observée explicite, un premier état sans état précédent et horodaté au bord de la fenêtre n'est plus traité comme une transition causale.
+- Dans ce cas, le verdict reste `indeterminate`, le type d'événement devient `window_boundary_state` et la réponse indique que l'objet était déjà dans cet état au début de la période examinée.
+- Les candidats de recherche inverse, traces et entrées Logbook calculés autour de ce faux timestamp sont retirés du résultat pour éviter toute attribution causale artificielle.
+- La preuve History est conservée comme preuve de support d'un état de bord, et non comme preuve directe d'une transition.
+- Une heure observée fournie explicitement par l'utilisateur n'est pas affectée par cette règle.
+- Ajout de tests de régression pour le cas lampe télé et pour la protection du cas avec heure observée explicite.
+- Le diagnostic copié utilise désormais la version remontée par le moteur, afin d'éviter les écarts de version interface/moteur.
+- Aucun changement des permissions Home Assistant, d'Ingress, d'AppArmor, des ports exposés ou du contrat strictement lecture seule.
+
 ## 0.1.0-beta.9
 
 - Ajout d'un bouton **« Copier le diagnostic pour Élise »** pour les verdicts `probable` et `indeterminate` uniquement.
