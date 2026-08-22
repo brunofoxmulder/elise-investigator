@@ -1,0 +1,12 @@
+configuration:
+  log_level:
+    name: Niveau de journalisation
+    description: Niveau de détail dans le journal de l'application.
+  default_window_minutes:
+    name: Fenêtre d'enquête par défaut
+    description: Nombre de minutes examinées quand aucune heure n'est indiquée.
+  max_reverse_candidates:
+    name: Limite de recherche inverse
+    description: Nombre maximal de configurations candidates examinées en secours.
+network:
+  8099/tcp: API locale optionnelle pour une IA conversationnelle

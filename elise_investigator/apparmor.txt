@@ -1,0 +1,28 @@
+#include <tunables/global>
+
+profile elise_investigator flags=(attach_disconnected,mediate_deleted) {
+  #include <abstractions/base>
+
+  network inet stream,
+  network inet6 stream,
+  network inet dgram,
+  network inet6 dgram,
+
+  signal (send) set=(kill,term,int,hup,cont),
+
+  /init ix,
+  /bin/** ix,
+  /usr/bin/** ix,
+  /usr/lib/** mr,
+  /usr/share/** r,
+  /lib/** mr,
+  /app/** rix,
+  /run.sh ix,
+
+  /data/** rwk,
+  /tmp/** rwk,
+  /run/** rwk,
+  /etc/** r,
+  /dev/null rw,
+  /dev/urandom r,
+}

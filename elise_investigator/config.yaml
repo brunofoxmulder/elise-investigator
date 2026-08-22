@@ -1,0 +1,31 @@
+name: "Élise Investigator"
+version: "0.1.0-beta.1"
+slug: "elise_investigator"
+description: "Explique en lecture seule les causes des événements Home Assistant."
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+watchdog: true
+stage: experimental
+homeassistant_api: true
+ingress: true
+ingress_port: 8099
+ingress_entry: /
+panel_icon: mdi:magnify-scan
+panel_title: Élise Investigator
+panel_admin: true
+ports:
+  8099/tcp: null
+ports_description:
+  8099/tcp: "API locale optionnelle pour une IA conversationnelle (protégée par jeton)"
+options:
+  log_level: info
+  default_window_minutes: 30
+  max_reverse_candidates: 25
+schema:
+  log_level: list(debug|info|warning|error)
+  default_window_minutes: int(5,180)
+  max_reverse_candidates: int(5,100)
