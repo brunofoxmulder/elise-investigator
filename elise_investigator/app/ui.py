@@ -11,13 +11,23 @@ main{max-width:820px;margin:auto;padding:18px}
 .card{background:var(--card,#fff);border-radius:18px;padding:18px;margin:0 0 14px;box-shadow:0 2px 12px #00000012}
 h1{font-size:1.55rem;margin:0 0 5px}.sub{opacity:.72;margin:0}.badge{display:inline-block;border-radius:999px;padding:4px 9px;font-size:.78rem;background:#e8f5e9;color:#176b2c;font-weight:700}
 label{display:block;font-weight:650;margin:13px 0 5px}input,textarea,button{font:inherit;box-sizing:border-box;width:100%;border-radius:12px;padding:11px;border:1px solid #aeb4bd;background:transparent;color:inherit}textarea{min-height:70px;resize:vertical}button{margin-top:16px;border:0;background:#3f51b5;color:#fff;font-weight:750;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:600px){.grid{grid-template-columns:1fr}}
-#answer{font-size:1.05rem;line-height:1.5}.status{font-weight:800;text-transform:uppercase;font-size:.78rem;letter-spacing:.04em}.confirmed{color:#1b7f37}.probable{color:#b26a00}.indeterminate{color:#a72a2a}details{margin-top:12px}pre{white-space:pre-wrap;word-break:break-word;font-size:.78rem;background:#0000000c;padding:12px;border-radius:10px;max-height:420px;overflow:auto}.small{font-size:.86rem;opacity:.76}.token{font-family:ui-monospace,monospace;word-break:break-all;background:#0000000c;padding:8px;border-radius:8px}.hidden{display:none}@media(prefers-color-scheme:dark){body{--bg:#111318;--fg:#e7e9ed;--card:#1b1e24}.badge{background:#153b20;color:#8ee9a4}}
+#answer{font-size:1.05rem;line-height:1.5}.status{font-weight:800;text-transform:uppercase;font-size:.78rem;letter-spacing:.04em}.confirmed{color:#1b7f37}.probable{color:#b26a00}.indeterminate{color:#a72a2a}details{margin-top:12px}pre{white-space:pre-wrap;word-break:break-word;font-size:.78rem;background:#0000000c;padding:12px;border-radius:10px;max-height:420px;overflow:auto}.small{font-size:.86rem;opacity:.76}.token{font-family:ui-monospace,monospace;word-break:break-all;background:#0000000c;padding:8px;border-radius:8px}.hidden{display:none}
+.picker{position:relative}.picker-help{font-size:.84rem;opacity:.72;margin:5px 0 0}.picker-list{position:absolute;z-index:20;left:0;right:0;top:100%;margin-top:5px;max-height:330px;overflow:auto;background:var(--card,#fff);border:1px solid #aeb4bd;border-radius:14px;box-shadow:0 12px 28px #0004}.picker-item{display:block;width:100%;text-align:left;border:0;border-radius:0;margin:0;padding:11px 13px;background:transparent;color:inherit;border-bottom:1px solid #8883}.picker-item:last-child{border-bottom:0}.picker-item:hover,.picker-item:focus{background:#8882}.picker-name{display:block;font-weight:700}.picker-meta{display:block;font-size:.78rem;opacity:.72;margin-top:2px;overflow-wrap:anywhere}.recent-wrap{margin-top:10px}.recent-title{font-size:.8rem;font-weight:700;opacity:.7;margin-bottom:6px}.recent-list{display:flex;gap:7px;flex-wrap:wrap}.recent-chip{width:auto;margin:0;padding:7px 10px;border:1px solid #8886;border-radius:999px;background:transparent;color:inherit;font-weight:600;font-size:.82rem}.selected-entity{font-size:.8rem;opacity:.75;margin-top:6px;overflow-wrap:anywhere}
+@media(prefers-color-scheme:dark){body{--bg:#111318;--fg:#e7e9ed;--card:#1b1e24}.badge{background:#153b20;color:#8ee9a4}}
 </style>
 </head>
 <body><main>
 <div class="card"><span class="badge">BÊTA 0.1 · LECTURE SEULE</span><h1>Élise Investigator</h1><p class="sub">Pourquoi cet objet a-t-il changé ?</p></div>
 <form id="form" class="card">
-<label for="entity">Entity ID *</label><input id="entity" name="entity_id" required autocomplete="off" placeholder="light.lampe_entree">
+<label for="entity_search">Objet Home Assistant *</label>
+<div class="picker">
+<input id="entity_search" autocomplete="off" placeholder="Ex. lampe entrée, volet salon…" aria-autocomplete="list" aria-expanded="false">
+<input id="entity" name="entity_id" type="hidden">
+<div id="picker_list" class="picker-list hidden" role="listbox"></div>
+</div>
+<p class="picker-help">Recherche par nom courant ou par Entity ID. Plus besoin de copier-coller depuis Home Assistant.</p>
+<div id="selected_entity" class="selected-entity hidden"></div>
+<div id="recent_wrap" class="recent-wrap hidden"><div class="recent-title">Récents</div><div id="recent_list" class="recent-list"></div></div>
 <div class="grid"><div><label for="time">Heure observée</label><input id="time" name="observed_time" type="datetime-local"></div><div><label for="value">Valeur observée</label><input id="value" name="observed_value" placeholder="on, 20, open…"></div></div>
 <label for="attribute">Attribut (facultatif)</label><input id="attribute" name="attribute" placeholder="temperature">
 <label for="declaration">Ce que tu sais déjà (facultatif)</label><textarea id="declaration" name="user_declaration" placeholder="Ex. : c'est moi qui l'ai fait à la voix"></textarea>
@@ -29,9 +39,62 @@ label{display:block;font-weight:650;margin:13px 0 5px}input,textarea,button{font
 <script>
 const form=document.getElementById('form'), btn=document.getElementById('go');
 const result=document.getElementById('result'), statusEl=document.getElementById('status'), answer=document.getElementById('answer'), jsonEl=document.getElementById('json'), limits=document.getElementById('limits');
+const searchEl=document.getElementById('entity_search'), entityEl=document.getElementById('entity'), pickerList=document.getElementById('picker_list'), selectedEl=document.getElementById('selected_entity'), recentWrap=document.getElementById('recent_wrap'), recentList=document.getElementById('recent_list');
+let entities=[], entitiesLoaded=false;
 function api(path){return new URL(path, window.location.href).toString()}
+function norm(v){return (v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
+function entityLabel(e){return e.name||e.entity_id}
+async function loadEntities(){
+ if(entitiesLoaded)return;
+ try{
+  const r=await fetch(api('api/v1/entities')); const d=await r.json(); if(!r.ok)throw new Error(d.error||'Impossible de charger les objets');
+  entities=Array.isArray(d.entities)?d.entities:[]; entitiesLoaded=true; renderRecents();
+ }catch(err){console.warn('Entity catalog unavailable',err)}
+}
+function scoreEntity(e,q){
+ const n=norm(e.name), id=norm(e.entity_id), domain=norm(e.domain); if(!q)return 999;
+ if(n===q)return 0; if(n.startsWith(q))return 1; if(n.includes(q))return 2; if(id===q)return 3; if(id.startsWith(q))return 4; if(id.includes(q))return 5; if(domain.includes(q))return 6; return 999;
+}
+function findMatches(q){
+ const nq=norm(q); if(!nq)return [];
+ return entities.map(e=>[scoreEntity(e,nq),e]).filter(x=>x[0]<999).sort((a,b)=>a[0]-b[0]||entityLabel(a[1]).localeCompare(entityLabel(b[1]),'fr')).slice(0,15).map(x=>x[1]);
+}
+function setSelected(e){
+ entityEl.value=e.entity_id; searchEl.value=entityLabel(e); selectedEl.textContent=e.entity_id+(e.state!==undefined?' · état : '+e.state:''); selectedEl.classList.remove('hidden'); closePicker(); remember(e.entity_id);
+}
+function clearSelected(){entityEl.value=''; selectedEl.textContent=''; selectedEl.classList.add('hidden')}
+function closePicker(){pickerList.classList.add('hidden');searchEl.setAttribute('aria-expanded','false')}
+function openPicker(items){
+ pickerList.innerHTML='';
+ if(!items.length){closePicker();return}
+ items.forEach(e=>{const b=document.createElement('button');b.type='button';b.className='picker-item';b.setAttribute('role','option');
+  const name=document.createElement('span');name.className='picker-name';name.textContent=entityLabel(e);
+  const meta=document.createElement('span');meta.className='picker-meta';meta.textContent=e.entity_id+(e.state!==undefined?' · '+e.state:'');
+  b.append(name,meta);b.addEventListener('click',()=>setSelected(e));pickerList.appendChild(b)});
+ pickerList.classList.remove('hidden');searchEl.setAttribute('aria-expanded','true');
+}
+function resolveTypedValue(){
+ const q=norm(searchEl.value); if(!q)return null;
+ const exactId=entities.find(e=>norm(e.entity_id)===q); if(exactId)return exactId;
+ const exactNames=entities.filter(e=>norm(e.name)===q); return exactNames.length===1?exactNames[0]:null;
+}
+function getRecentIds(){try{return JSON.parse(localStorage.getItem('elise_recent_entities')||'[]')}catch{return []}}
+function remember(id){const ids=[id,...getRecentIds().filter(x=>x!==id)].slice(0,6);localStorage.setItem('elise_recent_entities',JSON.stringify(ids));renderRecents()}
+function renderRecents(){
+ if(!entitiesLoaded)return; recentList.innerHTML=''; const recents=getRecentIds().map(id=>entities.find(e=>e.entity_id===id)).filter(Boolean);
+ if(!recents.length){recentWrap.classList.add('hidden');return} recentWrap.classList.remove('hidden');
+ recents.forEach(e=>{const b=document.createElement('button');b.type='button';b.className='recent-chip';b.textContent=entityLabel(e);b.addEventListener('click',()=>setSelected(e));recentList.appendChild(b)})
+}
+searchEl.addEventListener('focus',async()=>{await loadEntities();const q=searchEl.value.trim();if(q)openPicker(findMatches(q))});
+searchEl.addEventListener('input',async()=>{clearSelected();await loadEntities();openPicker(findMatches(searchEl.value))});
+searchEl.addEventListener('keydown',e=>{if(e.key==='Escape')closePicker()});
+document.addEventListener('click',e=>{if(!e.target.closest('.picker'))closePicker()});
 fetch(api('api/v1/connection')).then(r=>r.json()).then(d=>document.getElementById('token').textContent=d.api_token||'Indisponible').catch(()=>document.getElementById('token').textContent='Indisponible');
-form.addEventListener('submit',async e=>{e.preventDefault();btn.disabled=true;btn.textContent='Investigation…';result.classList.add('hidden');
+loadEntities();
+form.addEventListener('submit',async e=>{e.preventDefault();
+ if(!entityEl.value){await loadEntities();const resolved=resolveTypedValue();if(resolved)setSelected(resolved)}
+ if(!entityEl.value){statusEl.textContent='CHOISIR UN OBJET';statusEl.className='status indeterminate';answer.textContent='Tape quelques lettres puis touche l’objet Home Assistant voulu dans la liste.';jsonEl.textContent='';limits.innerHTML='';result.classList.remove('hidden');openPicker(findMatches(searchEl.value));return}
+ btn.disabled=true;btn.textContent='Investigation…';result.classList.add('hidden');
  const fd=new FormData(form), body={}; for(const [k,v] of fd.entries()){if(v!=='')body[k]=v}
  try{const r=await fetch(api('api/v1/investigate'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}); const d=await r.json(); if(!r.ok)throw new Error(d.error||d.message||'Erreur');
  statusEl.textContent='Cause '+d.status; statusEl.className='status '+d.status; answer.textContent=d.answer_text; jsonEl.textContent=JSON.stringify(d,null,2);
