@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.0-beta.6
+
+- Correction de compatibilité de l'entrée Web UI Ingress après validation du démarrage complet de la beta.5 sur HAOS.
+- La beta.5 restait en cours d'exécution mais l'ouverture de l'interface renvoyait `404: Not Found`.
+- Les routes HTTP connues disposent désormais d'un alias à double slash initial (`//...`) afin de tolérer un chemin Ingress comportant un slash supplémentaire, sans ajouter de route générique ni masquer les erreurs API.
+- La route d'accueil journalise le chemin d'alias réellement utilisé afin de confirmer le diagnostic lors du test HAOS.
+- Aucun changement du moteur causal, des autorisations Home Assistant, d'AppArmor ou des ports exposés.
+- Version interne de l'API alignée sur `0.1.0-beta.6`.
+
 ## 0.1.0-beta.5
 
 - Correction de l'accès au jeton Supervisor après validation du runtime Python en beta.4.
