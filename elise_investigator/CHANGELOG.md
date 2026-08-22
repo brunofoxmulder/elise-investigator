@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-beta.8
+
+- Amélioration ergonomique mobile : remplacement de la saisie brute d'`entity_id` par un sélecteur d'objets Home Assistant intégré.
+- Recherche instantanée par nom convivial, `entity_id` ou domaine ; la liste affiche le nom, l'identifiant technique et l'état courant.
+- Ajout d'un historique local des six derniers objets sélectionnés pour accélérer les investigations répétées.
+- L'utilisateur peut toujours saisir un `entity_id` exact ; un nom convivial exact et unique est également résolu automatiquement.
+- Ajout de l'endpoint lecture seule `GET /api/v1/entities`, alimenté uniquement par `GET /states` via le client Home Assistant existant.
+- Aucun nouveau privilège Home Assistant, aucun service d'action, aucun accès à `/config`, aucun changement AppArmor/Ingress et aucun port supplémentaire.
+- La politique de preuve causale de beta.7 reste inchangée.
+
 ## 0.1.0-beta.7
 
 - Correction de la logique de preuve causale après le premier test fonctionnel réel sur le volet salon.
