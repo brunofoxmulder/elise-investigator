@@ -1,3 +1,4 @@
 #!/bin/bash
 set -e
-exec python3 /app/main.py
+cd /app
+exec python3 main.py
