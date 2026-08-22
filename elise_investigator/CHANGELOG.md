@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0-beta.14
+
+- Retour volontaire aux **principes conversationnels de beta.11** après validation terrain de beta.12 : le texte libre local reste simple et conservateur au lieu d'évoluer vers un moteur linguistique maison.
+- Suppression des indices de domaine ajoutés en beta.12 (`lampe → light`, `volet → cover`, `clim → climate`, etc.). La résolution revient à la règle beta.11 : `entity_id` explicite, nom convivial complet, puis correspondance par mots ; une égalité reste ambiguë plutôt que devinée.
+- Le sélecteur d'objets Home Assistant introduit en beta.8 est conservé sans changement comme **mode de secours robuste** quand le texte libre n'identifie pas un objet de façon certaine.
+- `POST /api/v1/ask`, l'interprétation des états simples, des heures approximatives et le bouton de synthèse vocale restent disponibles comme dans beta.11.
+- La politique causale stricte reste inchangée : cette version ne modifie ni Recorder/Context/Logbook/traces, ni les règles de preuve `confirmed/probable/indeterminate`.
+- Orientation produit actée : la compréhension naturelle riche sera confiée aux agents conversationnels Home Assistant ; Élise Investigator reste un moteur d'explicabilité spécialisé, local et lecture seule.
+- Aucun nouveau privilège Home Assistant, aucun appel de service mutateur, aucun accès à `/config`, aucun changement AppArmor/Ingress et aucun port supplémentaire.
+
 ## 0.1.0-beta.12
 
 - Amélioration du mode conversationnel après le test réel « Pourquoi la lampe du salon est allumée ? » : les mots de type d'objet servent désormais de critères de désambiguïsation entre plusieurs entités portant le même nom convivial.
@@ -118,10 +128,3 @@
 - API JSON `POST /api/v1/investigate`.
 - Schéma OpenAPI pour raccordement d'une IA conversationnelle.
 - Résolution d'entité via registre et `unique_id` quand disponible.
-- Historique + Logbook comme preuves prioritaires.
-- Lecture des traces natives `trace/list` / `trace/get`.
-- Recherche inverse d'automatisations/scripts/scènes en dernier recours.
-- Distinction état principal / attribut / disponibilité.
-- Distinction commande prouvée / changement d'état observé.
-- Classement confirmé / probable / indéterminé.
-- Aucun appel de service Home Assistant et aucun montage de `/config`.
