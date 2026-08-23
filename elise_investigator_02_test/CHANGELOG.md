@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0-dev.10
+
+- La cause humaine est désormais dérivée du déclencheur Home Assistant prouvé au lieu d'afficher seulement le nom de l'automatisation.
+- Prise en charge générique des déclencheurs solaires avec décalage : coucher/lever du soleil, avant ou après l'événement.
+- Cas attendu : « Le volet salon s'est fermé parce que le soleil s'est couché il y a 45 minutes. »
+- Prise en charge générique des déclencheurs `device` d'ouverture/fermeture : la cause humaine vient du changement réellement observé sur le contact.
+- Cas attendu : « Le volet salon s'est ouvert parce que la fenêtre a été ouverte. »
+- Les conditions de permission/sécurité restent du contexte et ne deviennent pas artificiellement la cause.
+- La priorité action-locale de `wait_for_trigger` est conservée pour éviter toute régression des cas mouvement/absence de mouvement.
+- Nouveaux cas permanents `CERT-012` et `CERT-013` ; banc permanent porté à 13 cas.
+- Bouton `Log`, lecture seule, Ingress, AppArmor et port externe 8099 inchangés.
+
 ## 0.2.0-dev.9
 
 - Correction du cas réel où une même exécution contient plusieurs commandes sur le même objet : la commande retenue doit correspondre de manière unique à l'effet observé.
