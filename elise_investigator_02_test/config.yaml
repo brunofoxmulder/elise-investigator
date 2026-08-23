@@ -1,0 +1,31 @@
+name: "Élise Investigator 0.2 Test"
+version: "0.2.0-dev.6"
+slug: "elise_investigator_02_test"
+description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
+arch:
+  - amd64
+image: "ghcr.io/brunofoxmulder/elise-investigator-private"
+init: false
+startup: application
+boot: manual
+stage: experimental
+homeassistant_api: true
+ingress: true
+ingress_port: 8099
+ingress_entry: /
+panel_icon: mdi:magnify-scan
+panel_title: Élise Investigator 0.2 Test
+panel_admin: true
+apparmor: true
+ports:
+  8099/tcp: null
+ports_description:
+  8099/tcp: "API locale désactivée par défaut"
+options:
+  log_level: info
+  default_window_minutes: 30
+  max_reverse_candidates: 25
+schema:
+  log_level: list(debug|info|warning|error)
+  default_window_minutes: int(5,180)
+  max_reverse_candidates: int(5,100)
