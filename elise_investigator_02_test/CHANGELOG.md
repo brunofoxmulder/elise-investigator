@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0-dev.12
+
+- La cause humaine peut désormais provenir d'une décision locale `choose/default` prouvée par la trace, au lieu de reprendre systématiquement le déclencheur initial de l'automatisation.
+- Cas aspirateur : après 2 minutes, si la condition de puissance `> 1 W` est fausse et que la valeur observée est `0 W`, la coupure est expliquée par cette décision locale ; le passage en heures creuses reste le déclencheur initial, pas la cause humaine de l'extinction deux minutes plus tard.
+- Le moteur reste conservateur : une décision locale ne supplante le trigger initial que si la branche exécutée, sa condition et l'action correspondant à l'effet sont reliées sans ambiguïté par la trace d'exécution.
+- Correction générique des libellés sans accent : `Fenetre` est reconnu comme fenêtre même lorsque Home Assistant expose un `device_class: door` plus générique.
+- Priorité causale conservée : `wait_for_trigger` directement lié à l'effet, puis décision locale `choose/default`, puis déclencheur initial prouvé.
+- Les formulations ne prétendent pas distinguer ce que la preuve ne distingue pas : une puissance quasi nulle peut correspondre à une batterie chargée ou à un appareil non branché.
+- Ajout de `CERT-014` et `CERT-015` ; banc permanent porté à 15 cas.
+- Régression générale, certification, contrat de sécurité/lecture seule et smoke test conteneur validés.
+- Image privée `0.2.0-dev.12` construite, publiée et vérifiée ; accès anonyme refusé.
+- Lecture seule, Ingress, AppArmor et port externe 8099 inchangés.
+
 ## 0.2.0-dev.11
 
 - Refactorisation interne sans changement fonctionnel attendu.
