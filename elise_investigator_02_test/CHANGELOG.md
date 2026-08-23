@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0-dev.11
+
+- Refactorisation interne sans changement fonctionnel attendu.
+- Mutualisation des utilitaires causaux utilisés par l'analyse des traces et la restitution humaine afin d'éviter plusieurs implémentations divergentes.
+- Réutilisation d'un seul index en mémoire des états Home Assistant pendant une enquête pour enrichir les conditions et la cause humaine.
+- Les 13 cas du banc permanent de certification restent inchangés et validés.
+- Régression générale, certification permanente, contrat de sécurité/lecture seule et smoke test conteneur validés.
+- Image privée `0.2.0-dev.11` construite et vérifiée ; accès anonyme toujours refusé.
+- Aucun changement des règles de certitude, de la fenêtre adaptative, de l'interface fonctionnelle, d'Ingress, d'AppArmor ou des droits Home Assistant.
+
 ## 0.2.0-dev.10
 
 - La cause humaine est désormais dérivée du déclencheur Home Assistant prouvé au lieu d'afficher seulement le nom de l'automatisation.
