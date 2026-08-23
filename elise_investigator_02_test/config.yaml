@@ -1,5 +1,5 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.7"
+version: "0.2.0-dev.8"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
