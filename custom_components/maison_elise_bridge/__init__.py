@@ -31,6 +31,9 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_NOTIFY_SUFFIXES = ("_announce", "_annoncer", "_speak", "_parler")
+_ANNOUNCE_SUFFIXES = ("_announce", "_annoncer")
+
 
 def _investigator_url(slug: str) -> str:
     """Build the internal Supervisor-network URL for Investigator."""
@@ -64,6 +67,7 @@ def _last_alexa_notify_entity(hass: HomeAssistant) -> str | None:
         state
         for state in hass.states.async_all("event")
         if "voice_command" in state.attributes
+        or state.entity_id.endswith("_voice_event")
     ]
     voice_events.sort(key=lambda state: state.last_updated, reverse=True)
 
@@ -78,7 +82,7 @@ def _last_alexa_notify_entity(hass: HomeAssistant) -> str | None:
             if item.device_id == event_entry.device_id
             and item.entity_id.startswith("notify.")
         ]
-        for suffix in ("_announce", "_speak"):
+        for suffix in _NOTIFY_SUFFIXES:
             for entity_id in notify_entities:
                 if entity_id.endswith(suffix):
                     usable = _usable_notify_entity(hass, entity_id)
@@ -88,7 +92,8 @@ def _last_alexa_notify_entity(hass: HomeAssistant) -> str | None:
     announce_entities = [
         state.entity_id
         for state in hass.states.async_all("notify")
-        if state.entity_id.endswith("_announce") and state.state != "unavailable"
+        if state.entity_id.endswith(_ANNOUNCE_SUFFIXES)
+        and state.state != "unavailable"
     ]
     if len(announce_entities) == 1:
         return announce_entities[0]
