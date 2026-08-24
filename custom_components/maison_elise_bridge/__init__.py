@@ -174,10 +174,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     _bridge_error(hass, "Élise Investigator a refusé le jeton API du Bridge.")
                     return
                 if response.status != 200:
-                    _bridge_error(
-                        hass,
-                        f"Élise Investigator a répondu avec le statut HTTP {response.status}.",
+                    detail = ""
+                    try:
+                        error_payload: Any = await response.json(content_type=None)
+                        if isinstance(error_payload, dict):
+                            detail = str(
+                                error_payload.get("error")
+                                or error_payload.get("message")
+                                or ""
+                            ).strip()
+                    except Exception:
+                        try:
+                            detail = (await response.text()).strip()
+                        except Exception:
+                            detail = ""
+
+                    detail = " ".join(detail.split())[:500]
+                    message = (
+                        f"Élise Investigator a répondu avec le statut HTTP {response.status}."
                     )
+                    if detail:
+                        message += f" Détail : {detail}"
+                    _bridge_error(hass, message)
                     return
                 try:
                     result: Any = await response.json(content_type=None)
