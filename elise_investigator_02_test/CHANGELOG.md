@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0-dev.14
+
+- Désambiguïsation conversationnelle par domaine Home Assistant, sans LLM ni alias Maison Cognitive.
+- Les entités techniques `update.*` ne concurrencent plus les objets domestiques lors d'une recherche par nom naturel ; elles restent accessibles si leur `entity_id` est donné explicitement.
+- Les mots génériques d'objet servent de filtre de domaine lorsque cela lève une ambiguïté : lampe/lumière/éclairage → `light`, volet/store/rideau → `cover`, prise/interrupteur → `switch`, clim/climatisation → `climate`.
+- Cas terrain corrigés : « prise de l'aspirateur » sélectionne `switch.prise_aspirateur` plutôt que l'entité `update.*` homonyme ; même règle pour la brosse à dents.
+- Si `climate.salon` et `light.salon` portent tous deux le nom « Salon », « lampe du salon » sélectionne `light.salon` et « clim du salon » sélectionne `climate.salon` ; « salon » seul reste volontairement ambigu.
+- Les doublons réels à l'intérieur d'un même domaine restent en erreur d'ambiguïté : Investigator ne devine pas.
+- Régression générale, certification permanente, contrat de sécurité/lecture seule et smoke test conteneur validés.
+- Image privée `0.2.0-dev.14` construite, publiée et vérifiée ; accès anonyme refusé.
+- Aucun changement du moteur causal, des niveaux `confirmed/probable/indeterminate`, des droits Home Assistant, d'Ingress, d'AppArmor ni du port externe 8099.
+
 ## 0.2.0-dev.13
 
 - Résolution conversationnelle française rendue plus naturelle sans LLM ni alias Maison Cognitive.
