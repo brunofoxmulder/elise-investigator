@@ -175,6 +175,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     return
                 if response.status != 200:
                     detail = ""
+                    candidate_text = ""
                     try:
                         error_payload: Any = await response.json(content_type=None)
                         if isinstance(error_payload, dict):
@@ -183,6 +184,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                                 or error_payload.get("message")
                                 or ""
                             ).strip()
+                            candidates = error_payload.get("candidates")
+                            if response.status == 409 and isinstance(candidates, list):
+                                formatted_candidates: list[str] = []
+                                for candidate in candidates[:8]:
+                                    if not isinstance(candidate, dict):
+                                        continue
+                                    entity_id = str(candidate.get("entity_id") or "").strip()
+                                    name = str(candidate.get("name") or "").strip()
+                                    if name and entity_id:
+                                        formatted_candidates.append(f"{name} ({entity_id})")
+                                    elif entity_id:
+                                        formatted_candidates.append(entity_id)
+                                    elif name:
+                                        formatted_candidates.append(name)
+                                candidate_text = "; ".join(formatted_candidates)
                     except Exception:
                         try:
                             detail = (await response.text()).strip()
@@ -190,11 +206,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                             detail = ""
 
                     detail = " ".join(detail.split())[:500]
+                    candidate_text = " ".join(candidate_text.split())[:1000]
                     message = (
                         f"Élise Investigator a répondu avec le statut HTTP {response.status}."
                     )
                     if detail:
                         message += f" Détail : {detail}"
+                    if candidate_text:
+                        message += f" Candidats : {candidate_text}"
                     _bridge_error(hass, message)
                     return
                 try:
