@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.0-dev.13
+
+- Résolution conversationnelle française rendue plus naturelle sans LLM ni alias Maison Cognitive.
+- Les mots grammaticaux (`le`, `la`, `de`, `du`, `des`, etc.) sont neutralisés pour comparer la question au `friendly_name` Home Assistant tout en conservant l’ordre des mots.
+- Exemples couverts : « volet du salon » → « Volet salon », « lampe du salon » → « Lampe salon », « prise de la télé » → « Prise télé », « chargeur du téléphone » → « Chargeur téléphone ».
+- Si l’objet Home Assistant est simplement « Frigo », « prise du frigo » peut résoudre « Frigo » lorsqu’aucun objet plus spécifique et non ambigu ne correspond.
+- Les noms plus spécifiques sont prioritaires ; les vrais doublons restent en erreur d’ambiguïté au lieu d’être devinés.
+- Régression générale, certification permanente, contrat de sécurité/lecture seule et smoke test conteneur validés.
+- Image privée `0.2.0-dev.13` construite, publiée et vérifiée ; accès anonyme refusé.
+- Aucun changement du moteur causal, des niveaux `confirmed/probable/indeterminate`, des droits Home Assistant, d’Ingress, d’AppArmor ni du port externe 8099.
+
 ## 0.2.0-dev.12
 
 - La cause humaine peut désormais provenir d'une décision locale `choose/default` prouvée par la trace, au lieu de reprendre systématiquement le déclencheur initial de l'automatisation.
