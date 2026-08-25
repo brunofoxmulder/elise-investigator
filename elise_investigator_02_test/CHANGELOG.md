@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0-dev.15
+
+- Version volontairement limitée au diagnostic et à l’observabilité : aucun changement du moteur causal ni de la logique de résolution.
+- Ajout d’un journal local persistant sous `/data/audit`, conservé 10 jours, plafonné en taille et nettoyé des secrets connus.
+- Chaque demande reçoit un `request_id` et des étapes de suivi `received`, `resolved`, `event_selected`, `completed` ou `error`.
+- Traçage du texte exact reçu, de la normalisation, des candidats et scores du résolveur, des filtres appliqués, de la requête réellement transmise au moteur, des événements History considérés et de l’événement finalement sélectionné.
+- Traçage de la réponse exacte, de sa longueur, du statut HTTP et des durées par étape afin d’identifier les troncatures, erreurs de résolution et timeouts.
+- Provenance factuelle des appels : `ingress_ui`, `api_ask`, `api_investigate` ou `unknown`, sans déduire abusivement qu’un appel API est forcément vocal.
+- Nouvelle vue Ingress « Dernières demandes » avec filtres, détail d’une requête et exports JSONL/TXT pour diagnostic externe.
+- Cas de tests ajoutés pour la résolution « lampe salle de bain » et pour la sélection d’un événement `closed` face à une ancienne ouverture.
+- Régression générale, certification permanente, contrat de sécurité/lecture seule et smoke test conteneur validés.
+- Image privée `0.2.0-dev.15` construite, publiée et vérifiée ; accès anonyme refusé.
+- Lecture seule Home Assistant, Ingress, AppArmor et port externe 8099 inchangés.
+
 ## 0.2.0-dev.14
 
 - Désambiguïsation conversationnelle par domaine Home Assistant, sans LLM ni alias Maison Cognitive.
