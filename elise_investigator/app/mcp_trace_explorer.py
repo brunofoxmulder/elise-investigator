@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 from mcp_client import MCPProtocolSession, MCPReadOnlyError
@@ -19,9 +19,41 @@ def _parse_timestamp(value: Any) -> datetime | None:
     if not isinstance(value, str) or not value.strip():
         return None
     try:
-        return datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
     except ValueError:
         return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
+def _trace_interval(value: Any) -> tuple[datetime | None, datetime | None]:
+    """Return the start/finish interval exposed by Home Assistant traces.
+
+    HA-MCP passes Home Assistant's trace timestamp through. Depending on the
+    trace shape this can be a single timestamp or a {start, finish} mapping.
+    Missing finish deliberately falls back to a point-in-time comparison.
+    """
+    if isinstance(value, str):
+        start = _parse_timestamp(value)
+        return start, None
+    if not isinstance(value, dict):
+        return None, None
+    start = _parse_timestamp(value.get("start"))
+    finish = _parse_timestamp(value.get("finish"))
+    return start, finish
+
+
+def _distance_to_trace(anchor: datetime, value: Any) -> float | None:
+    start, finish = _trace_interval(value)
+    if start is None:
+        return None
+    if finish is not None and finish >= start:
+        if start <= anchor <= finish:
+            return 0.0
+        if anchor > finish:
+            return (anchor - finish).total_seconds()
+    return abs((start - anchor).total_seconds())
 
 
 def _unwrap_tool_result(value: Any) -> dict[str, Any]:
@@ -238,12 +270,10 @@ async def explore_bounded_traces(
             )
             for trace in traces:
                 run_id = trace.get("run_id")
-                timestamp = trace.get("timestamp")
-                parsed = _parse_timestamp(timestamp)
-                if not isinstance(run_id, str) or parsed is None:
+                if not isinstance(run_id, str):
                     continue
-                distance = abs((parsed - anchor).total_seconds())
-                if distance <= MAX_EVENT_DISTANCE_SECONDS:
+                distance = _distance_to_trace(anchor, trace.get("timestamp"))
+                if distance is not None and distance <= MAX_EVENT_DISTANCE_SECONDS:
                     scored_runs.append((distance, entity_id, run_id, trace))
         except MCPReadOnlyError as exc:
             candidate_lists.append(
@@ -258,17 +288,18 @@ async def explore_bounded_traces(
 
     selected_run: dict[str, Any] | None = None
     selected_detail: dict[str, Any] | None = None
+    detail_error = False
     if scored_runs:
-        scored_runs.sort(key=lambda item: item[0])
+        scored_runs.sort(key=lambda item: (item[0], item[1], item[2]))
         distance, entity_id, run_id, trace = scored_runs[0]
         selected_run = {
             "automation_id": entity_id,
             "run_id": run_id,
-            "timestamp": trace.get("timestamp"),
+            "timestamp": sanitize(trace.get("timestamp")),
             "state": trace.get("state"),
-            "trigger": trace.get("trigger"),
+            "trigger": sanitize(trace.get("trigger")),
             "distance_seconds": distance,
-            "selection_reason": "closest_trace_start_within_30_minutes",
+            "selection_reason": "closest_trace_interval_within_30_minutes",
             "selection_is_causal_proof": False,
         }
         try:
@@ -285,6 +316,12 @@ async def explore_bounded_traces(
             selected_detail = sanitize(_compact_detail(_unwrap_tool_result(raw_detail)))
         except MCPReadOnlyError as exc:
             selected_detail = {"success": False, "error": sanitize(str(exc))}
+            detail_error = True
+
+    if selected_detail is not None:
+        status = "detail_error" if detail_error else "detail_selected"
+    else:
+        status = "lists_only"
 
     return {
         "mode": "bounded_read_only_trace_exploration",
@@ -304,7 +341,7 @@ async def explore_bounded_traces(
         "selection_is_causal_proof": False,
         "causal_verdict": None,
         "investigator_status_unchanged": True,
-        "status": "detail_selected" if selected_detail is not None else "lists_only",
+        "status": status,
         "policy": (
             "La proximité temporelle sert uniquement à choisir une trace à examiner. "
             "Elle ne constitue pas une preuve causale et ne modifie jamais le verdict Investigator."
