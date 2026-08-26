@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 import aiohttp
 
 from mcp_client import MCPConnection, MCPProtocolSession, MCPReadOnlyClient, MCPReadOnlyError
+from mcp_synthesis import synthesize_mcp_findings
 
 _OPTIONS_FILE = Path("/data/options.json")
 _PRIVATE_NETWORKS = (
@@ -29,13 +30,9 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
     and is stored only in /data/options.json. It is never returned by status/search
     endpoints.
 
-    Dev.23 keeps the dev.22 handshake validation but normalizes copy/paste artefacts
-    before parsing the URL. Only Unicode whitespace and format characters (for
-    example line breaks, tabs, NBSP, zero-width spaces/marks) are removed. The
-    actual secret characters are otherwise left untouched. The endpoint is then
-    validated by the real MCP initialize + tools/list handshake. Read-only remains
-    enforced by the inherited fixed tool allow-list plus each MCP tool's
-    readOnlyHint.
+    Dev.24 keeps the proven dev.23 local transport and adds a deterministic local
+    synthesis layer over the fixed read-only MCP recipe. No LLM is involved and
+    the synthesis is forbidden from assigning a causal verdict.
     """
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
@@ -164,3 +161,26 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
         await protocol.initialize()
         await protocol.list_tools()
         return connection, protocol
+
+    async def research_entity(self, entity_id: str, question: str) -> dict[str, object]:
+        """Run the proven read-only recipe, then synthesize facts locally."""
+        result = await super().research_entity(entity_id, question)
+        raw_findings = result.get("findings")
+        findings = raw_findings if isinstance(raw_findings, list) else []
+        synthesis = synthesize_mcp_findings(entity_id, question, findings)
+
+        # Never let this layer become an alternative causal authority. It is a
+        # presentation/synthesis layer over read-only facts only.
+        result["mode"] = "deterministic_local_synthesis"
+        result["answer"] = synthesis["answer"]
+        result["local_synthesis"] = synthesis
+        result["causal_verdict"] = None
+        result["investigator_status_unchanged"] = True
+        result["limits"] = [
+            "Synthèse locale déterministe sans LLM.",
+            "Faits observés et pistes de configuration sont séparés.",
+            "Aucun verdict causal Investigator n'est créé, augmenté ni modifié.",
+            "Une trace corrélée sera nécessaire avant toute montée en preuve causale.",
+            "Seuls des outils MCP explicitement autorisés et déclarés readOnly sont appelés.",
+        ]
+        return result
