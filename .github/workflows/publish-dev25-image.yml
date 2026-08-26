@@ -9,6 +9,7 @@ on:
       - 'elise_investigator/**'
       - 'elise_investigator_02_test/config.yaml'
       - 'elise_investigator_02_test/translations/**'
+  workflow_dispatch:
 
 permissions:
   contents: read
