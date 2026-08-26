@@ -1,16 +1,16 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.17.1"
+version: "0.2.0-dev.18"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev17-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev18-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.17 prototype only: GET /addons, /addons/<slug>/info and /network/info.
+# Dev.18 terrain prototype only: GET /addons, /addons/<slug>/info and /network/info.
 # manager is required because Supervisor redacts another App's options otherwise;
 # mcp_client.py exposes no generic Supervisor call and performs GETs only.
 hassio_api: true
