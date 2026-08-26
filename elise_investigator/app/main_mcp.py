@@ -9,18 +9,26 @@ import main as base
 from mcp_client import MCPReadOnlyClient, MCPReadOnlyError
 from ui import INDEX_HTML as BASE_INDEX_HTML
 
-VERSION = "0.2.0-dev.27"
+VERSION = "0.2.0-dev.28"
 
 _MCP_CARD = r'''
 <div id="mcp_console" class="card">
   <p class="section-title">Recherche MCP locale</p>
-  <p class="section-sub">Recherche multi-outils strictement en lecture seule. La synthèse est produite localement, sans IA, et ne modifie jamais le verdict causal d’Investigator.</p>
+  <p class="section-sub">Recherche multi-outils strictement en lecture seule. Choisis ici l'objet et pose ta question sans lancer Investigator. La synthèse est produite localement, sans IA, et ne modifie jamais le verdict causal d’Investigator.</p>
   <p id="mcp_status" class="small">Vérification de HA-MCP…</p>
   <details id="mcp_trace_contract_box" class="hidden">
     <summary>Contrat live ha_get_automation_traces</summary>
     <p id="mcp_trace_contract_note" class="small"></p>
     <pre id="mcp_trace_contract_json"></pre>
   </details>
+  <label for="mcp_entity_search">Objet Home Assistant *</label>
+  <div class="picker mcp-picker">
+    <input id="mcp_entity_search" autocomplete="off" placeholder="Ex. lampe entrée, volet salon…" aria-autocomplete="list" aria-expanded="false">
+    <input id="mcp_entity" type="hidden">
+    <div id="mcp_picker_list" class="picker-list hidden" role="listbox"></div>
+  </div>
+  <p class="picker-help">Sélecteur MCP autonome · recherche par nom courant ou Entity ID.</p>
+  <div id="mcp_selected_entity" class="selected-entity hidden"></div>
   <label for="mcp_question">Question</label>
   <textarea id="mcp_question" placeholder="Ex. Pourquoi le volet salon est-il arrivé à 40 % ?"></textarea>
   <button id="mcp_go" type="button">Rechercher avec MCP</button>
@@ -41,12 +49,28 @@ _MCP_CARD = r'''
 '''
 
 _MCP_SCRIPT = r'''
-const MCP_UI_VERSION='0.2.0-dev.27';
+const MCP_UI_VERSION='0.2.0-dev.28';
 const mcpStatusEl=document.getElementById('mcp_status'),mcpGo=document.getElementById('mcp_go'),mcpQuestion=document.getElementById('mcp_question');
+const mcpEntitySearch=document.getElementById('mcp_entity_search'),mcpEntityEl=document.getElementById('mcp_entity'),mcpPickerList=document.getElementById('mcp_picker_list'),mcpSelectedEl=document.getElementById('mcp_selected_entity');
 const mcpResult=document.getElementById('mcp_result'),mcpResultStatus=document.getElementById('mcp_result_status'),mcpAnswer=document.getElementById('mcp_answer'),mcpProvenance=document.getElementById('mcp_provenance'),mcpTools=document.getElementById('mcp_tools'),mcpTraceSummary=document.getElementById('mcp_trace_summary'),mcpJson=document.getElementById('mcp_json');
 const mcpTraceBox=document.getElementById('mcp_trace_contract_box'),mcpTraceNote=document.getElementById('mcp_trace_contract_note'),mcpTraceJson=document.getElementById('mcp_trace_contract_json');
 const mcpTextActions=document.getElementById('mcp_text_actions'),mcpCopyText=document.getElementById('mcp_copy_text');
-let mcpAvailable=false,lastMcpResult=null;
+let mcpAvailable=false,lastMcpResult=null,mcpEntities=[],mcpEntitiesLoaded=false;
+function mcpNorm(v){return (v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim()}
+function mcpEntityLabel(e){return e.name||e.entity_id}
+async function loadMcpEntities(){
+ if(mcpEntitiesLoaded)return;
+ const r=await fetch(api('api/v1/entities'));const d=await r.json();if(!r.ok)throw new Error(d.error||'Impossible de charger les objets Home Assistant');
+ mcpEntities=Array.isArray(d.entities)?d.entities:[];mcpEntitiesLoaded=true;
+}
+function scoreMcpEntity(e,q){const n=mcpNorm(e.name),id=mcpNorm(e.entity_id),domain=mcpNorm(e.domain);if(!q)return 999;if(n===q)return 0;if(n.startsWith(q))return 1;if(n.includes(q))return 2;if(id===q)return 3;if(id.startsWith(q))return 4;if(id.includes(q))return 5;if(domain.includes(q))return 6;return 999}
+function findMcpMatches(q){const nq=mcpNorm(q);if(!nq)return [];return mcpEntities.map(e=>[scoreMcpEntity(e,nq),e]).filter(x=>x[0]<999).sort((a,b)=>a[0]-b[0]||mcpEntityLabel(a[1]).localeCompare(mcpEntityLabel(b[1]),'fr')).slice(0,15).map(x=>x[1])}
+function mcpSetSelected(e){mcpEntityEl.value=e.entity_id;mcpEntitySearch.value=mcpEntityLabel(e);mcpSelectedEl.textContent=e.entity_id+(e.state!==undefined?' · état : '+e.state:'');mcpSelectedEl.classList.remove('hidden');mcpClosePicker()}
+function mcpClearSelected(){mcpEntityEl.value='';mcpSelectedEl.textContent='';mcpSelectedEl.classList.add('hidden')}
+function mcpClosePicker(){mcpPickerList.classList.add('hidden');mcpEntitySearch.setAttribute('aria-expanded','false')}
+function mcpOpenPicker(items){mcpPickerList.innerHTML='';if(!items.length){mcpClosePicker();return}items.forEach(e=>{const b=document.createElement('button');b.type='button';b.className='picker-item';b.setAttribute('role','option');const name=document.createElement('span');name.className='picker-name';name.textContent=mcpEntityLabel(e);const meta=document.createElement('span');meta.className='picker-meta';meta.textContent=e.entity_id+(e.state!==undefined?' · '+e.state:'');b.append(name,meta);b.addEventListener('click',()=>mcpSetSelected(e));mcpPickerList.appendChild(b)});mcpPickerList.classList.remove('hidden');mcpEntitySearch.setAttribute('aria-expanded','true')}
+function mcpResolveTypedValue(){const q=mcpNorm(mcpEntitySearch.value);if(!q)return null;const exactId=mcpEntities.find(e=>mcpNorm(e.entity_id)===q);if(exactId)return exactId;const exactNames=mcpEntities.filter(e=>mcpNorm(e.name)===q);return exactNames.length===1?exactNames[0]:null}
+function renderMcpError(message){mcpResultStatus.textContent='MCP LOCAL · À PRÉCISER';mcpResultStatus.className='status indeterminate';mcpAnswer.textContent=message;mcpProvenance.textContent='';mcpTools.textContent='';mcpTraceSummary.textContent='';mcpJson.textContent='';mcpTextActions.classList.add('hidden');lastMcpResult=null;mcpResult.classList.remove('hidden');mcpResult.scrollIntoView({behavior:'smooth',block:'nearest'})}
 function buildMcpShareText(d){
  const synth=d.local_synthesis||{},explore=d.trace_exploration||{};
  const facts=Array.isArray(synth.facts)?synth.facts:[];
@@ -55,8 +79,8 @@ function buildMcpShareText(d){
  const events=Array.isArray(recent.events)?recent.events.slice(0,2):[];
  const leads=Array.isArray(synth.configuration_leads)?synth.configuration_leads.slice(0,6):[];
  const selected=explore.selected_run||null,detail=explore.selected_run_detail||null;
- const entity=entities.find(item=>item.entity_id===d.entity_id);
- const label=entity?entityLabel(entity):(d.entity_id||'');
+ const entity=mcpEntities.find(item=>item.entity_id===d.entity_id);
+ const label=entity?mcpEntityLabel(entity):(d.entity_id||'');
  const lines=[
   'ÉLISE INVESTIGATOR — RÉSUMÉ MCP',
   'Version: '+MCP_UI_VERSION,
@@ -87,7 +111,7 @@ async function loadMcpStatus(){
    mcpStatusEl.textContent='HA-MCP connecté · lecture seule imposée par Investigator · '+(d.tool_count||0)+' outils'+(tools?' · autorisés ici : '+tools:'');
    const contract=d.trace_tool_contract;
    if(contract){
-    mcpTraceNote.textContent='Contrat validé en dev.25 · ouvrir ce panneau n’appelle aucune trace. Dev.27 conserve l’exploration bornée de dev.26 et ajoute uniquement l’export Texte.';
+    mcpTraceNote.textContent='Contrat validé en dev.25 · ouvrir ce panneau n’appelle aucune trace. Dev.28 conserve dev.26/dev.27 et rend uniquement le sélecteur d’objet MCP autonome.';
     mcpTraceJson.textContent=JSON.stringify({inputSchema:contract.inputSchema||{},annotations:contract.annotations||{}},null,2);
     mcpTraceBox.classList.remove('hidden');
    }else if(d.trace_tool_contract_error){
@@ -99,6 +123,10 @@ async function loadMcpStatus(){
  }catch(err){mcpAvailable=false;mcpStatusEl.textContent='HA-MCP indisponible : '+err.message;}
  mcpGo.disabled=!mcpAvailable;
 }
+mcpEntitySearch.addEventListener('focus',async()=>{try{await loadMcpEntities();const q=mcpEntitySearch.value.trim();if(q)mcpOpenPicker(findMcpMatches(q))}catch(err){renderMcpError(err.message)}});
+mcpEntitySearch.addEventListener('input',async()=>{mcpClearSelected();try{await loadMcpEntities();mcpOpenPicker(findMcpMatches(mcpEntitySearch.value))}catch(err){renderMcpError(err.message)}});
+mcpEntitySearch.addEventListener('keydown',e=>{if(e.key==='Escape')mcpClosePicker()});
+document.addEventListener('click',e=>{if(!e.target.closest('.mcp-picker'))mcpClosePicker()});
 mcpCopyText.addEventListener('click',async()=>{
  if(!lastMcpResult)return;
  const original=mcpCopyText.textContent;mcpCopyText.disabled=true;
@@ -107,12 +135,12 @@ mcpCopyText.addEventListener('click',async()=>{
  finally{mcpCopyText.disabled=false}
 });
 mcpGo.addEventListener('click',async()=>{
- if(!entityEl.value){await loadEntities();const resolved=resolveTypedValue();if(resolved)setSelected(resolved)}
- if(!entityEl.value){renderError('Choisis d’abord un objet Home Assistant dans la liste.');return}
+ if(!mcpEntityEl.value){try{await loadMcpEntities();const resolved=mcpResolveTypedValue();if(resolved)mcpSetSelected(resolved)}catch(err){renderMcpError(err.message);return}}
+ if(!mcpEntityEl.value){renderMcpError('Choisis un objet Home Assistant dans le sélecteur MCP.');mcpOpenPicker(findMcpMatches(mcpEntitySearch.value));return}
  const question=mcpQuestion.value.trim();if(!question){mcpQuestion.focus();return}
  mcpGo.disabled=true;mcpGo.textContent='Recherche MCP…';mcpResult.classList.add('hidden');mcpTextActions.classList.add('hidden');lastMcpResult=null;
  try{
-  const r=await fetch(api('api/v1/mcp/search'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entity_id:entityEl.value,question})});
+  const r=await fetch(api('api/v1/mcp/search'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entity_id:mcpEntityEl.value,question})});
   const d=await r.json();if(!r.ok)throw new Error(d.error||'Recherche MCP impossible');
   const synth=d.local_synthesis||{},explore=d.trace_exploration||{};
   const explored=explore.trace_tool_called===true;
@@ -126,6 +154,7 @@ mcpGo.addEventListener('click',async()=>{
  }catch(err){mcpResultStatus.textContent='MCP LOCAL · ERREUR';mcpResultStatus.className='status indeterminate';mcpAnswer.textContent=err.message;mcpProvenance.textContent='';mcpTools.textContent='';mcpTraceSummary.textContent='';mcpJson.textContent='';mcpTextActions.classList.add('hidden');lastMcpResult=null;mcpResult.classList.remove('hidden');}
  finally{mcpGo.textContent='Rechercher avec MCP';mcpGo.disabled=!mcpAvailable;}
 });
+loadMcpEntities().catch(err=>console.warn('MCP entity catalog unavailable',err));
 loadMcpStatus();
 '''
 
