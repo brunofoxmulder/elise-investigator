@@ -5,9 +5,9 @@ from aiohttp import web
 import main_mcp
 from mcp_client_inprocess import InProcessMCPReadOnlyClient
 
-# Terrain prototype 0.2.0-dev.20: keep the existing Investigator + MCP console
+# Terrain prototype 0.2.0-dev.21: keep the existing Investigator + MCP console
 # unchanged and replace only the HA-MCP connection adapter.
-main_mcp.VERSION = "0.2.0-dev.20"
+main_mcp.VERSION = "0.2.0-dev.21"
 main_mcp.MCPReadOnlyClient = InProcessMCPReadOnlyClient
 
 
