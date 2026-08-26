@@ -10,13 +10,11 @@ class CompatibleMCPReadOnlyClient(MCPReadOnlyClient):
     """Terrain-compatible HA-MCP discovery for Supervisor app metadata.
 
     The base client already enforces the read-only MCP contract. This subclass
-    only broadens app discovery so a store-prefixed or hyphenated installed slug
-    can still be recognized from the official HA-MCP metadata returned by
-    Supervisor.
+    only broadens app discovery. Supervisor may expose an installed App with a
+    store-prefixed slug and without the upstream repository URL in /addons.
     """
 
     OFFICIAL_NAME = "home assistant mcp server"
-    OFFICIAL_SOURCE = "homeassistant-ai/ha-mcp"
 
     @staticmethod
     def _norm(value: Any) -> str:
@@ -25,13 +23,9 @@ class CompatibleMCPReadOnlyClient(MCPReadOnlyClient):
         return " ".join(text.split())
 
     @classmethod
-    def _is_official_metadata(cls, addon: dict[str, Any]) -> bool:
+    def _is_official_name(cls, addon: dict[str, Any]) -> bool:
         name = cls._norm(addon.get("name"))
-        source_text = " ".join(
-            str(addon.get(key) or "").lower()
-            for key in ("url", "repository")
-        )
-        return name == cls.OFFICIAL_NAME and cls.OFFICIAL_SOURCE in source_text
+        return name == cls.OFFICIAL_NAME or name.startswith(cls.OFFICIAL_NAME + " ")
 
     @classmethod
     def _matching_slugs(cls, addons: list[dict[str, Any]]) -> list[str]:
@@ -50,9 +44,9 @@ class CompatibleMCPReadOnlyClient(MCPReadOnlyClient):
                 or slug_normalized == "ha_mcp_dev"
                 or slug_normalized.endswith("_ha_mcp_dev")
             )
-            metadata_match = cls._is_official_metadata(addon)
+            name_match = cls._is_official_name(addon)
 
-            if not slug_match and not metadata_match:
+            if not slug_match and not name_match:
                 continue
 
             is_dev = (
