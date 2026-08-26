@@ -3,10 +3,12 @@ from __future__ import annotations
 import asyncio
 import logging
 from typing import Any
+import uuid
 
 from aiohttp import ClientError, ClientTimeout, web
 
 from homeassistant.components import cloud, persistent_notification, webhook
+from homeassistant.components.hassio import HassioNotReadyError, get_apps_list
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -25,6 +27,9 @@ from .const import (
     INVESTIGATOR_ASK_PATH,
     INVESTIGATOR_PORT,
     LAST_CALLED_SENSOR,
+    MAISON_ELISE_APP_CONVERSATION_PATH,
+    MAISON_ELISE_APP_PORT,
+    MAISON_ELISE_APP_SLUG_SUFFIX,
     MAX_QUESTION_LENGTH,
     NOTIFICATION_ID,
 )
@@ -39,6 +44,32 @@ def _investigator_url(slug: str) -> str:
     """Build the internal Supervisor-network URL for Investigator."""
     hostname = slug.replace("_", "-")
     return f"http://{hostname}:{INVESTIGATOR_PORT}{INVESTIGATOR_ASK_PATH}"
+
+
+def _maison_elise_app_url(slug: str) -> str:
+    """Build the private Supervisor-network URL for Maison Élise App."""
+    hostname = slug.replace("_", "-")
+    return (
+        f"http://{hostname}:{MAISON_ELISE_APP_PORT}"
+        f"{MAISON_ELISE_APP_CONVERSATION_PATH}"
+    )
+
+
+def _find_maison_elise_app_slug(hass: HomeAssistant) -> str | None:
+    """Discover Maison Élise App without hardcoding its repository hash."""
+    try:
+        apps = get_apps_list(hass)
+    except HassioNotReadyError:
+        return None
+
+    for app in apps:
+        slug = app.get("slug")
+        if isinstance(slug, str) and (
+            slug == MAISON_ELISE_APP_SLUG_SUFFIX
+            or slug.endswith(f"_{MAISON_ELISE_APP_SLUG_SUFFIX}")
+        ):
+            return slug
+    return None
 
 
 def _usable_notify_entity(hass: HomeAssistant, entity_id: Any) -> str | None:
@@ -132,7 +163,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.config_entries.async_update_entry(entry, data=data)
 
     async def announce_answer(answer_text: str, preferred_target: str | None) -> None:
-        """Announce the Investigator answer on the Alexa device used for the request."""
+        """Announce the Maison Élise answer on the Alexa device used for the request."""
         target = _usable_notify_entity(hass, preferred_target)
         if target is None:
             target = _last_alexa_notify_entity(hass)
@@ -140,7 +171,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if target is None:
             _bridge_error(
                 hass,
-                "Réponse reçue d'Élise Investigator, mais aucun Echo cible n'a pu être identifié. "
+                "Réponse reçue de Maison Élise, mais aucun Echo cible n'a pu être identifié. "
                 f"Réponse : {answer_text}",
             )
             return
@@ -149,7 +180,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await hass.services.async_call(
                 "notify",
                 "send_message",
-                {"message": f"Élise Investigator. {answer_text}"},
+                {"message": f"Élise. {answer_text}"},
                 target={"entity_id": target},
                 blocking=True,
             )
@@ -161,10 +192,78 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             )
             return
 
-        _LOGGER.info("Maison Élise Bridge announced Investigator answer on %s", target)
+        _LOGGER.info("Maison Élise Bridge announced answer on %s", target)
+
+    async def try_maison_elise_app(
+        question: str, preferred_target: str | None
+    ) -> bool:
+        """Try the new App first; return False so Investigator remains rollback."""
+        app_slug = _find_maison_elise_app_slug(hass)
+        if app_slug is None:
+            _LOGGER.warning("Maison Élise App not found; using Investigator rollback")
+            return False
+
+        session = async_get_clientsession(hass)
+        request_id = f"alexa-{uuid.uuid4().hex}"
+        try:
+            async with session.post(
+                _maison_elise_app_url(app_slug),
+                json={
+                    "request_id": request_id,
+                    "text": question,
+                    "source": "alexa-bridge",
+                },
+                timeout=ClientTimeout(total=BACKGROUND_REQUEST_TIMEOUT_SECONDS),
+            ) as response:
+                if response.status != 200:
+                    _LOGGER.warning(
+                        "Maison Élise App returned HTTP %s; using Investigator rollback",
+                        response.status,
+                    )
+                    return False
+                try:
+                    result: Any = await response.json(content_type=None)
+                except Exception:
+                    _LOGGER.warning(
+                        "Maison Élise App returned invalid JSON; using Investigator rollback"
+                    )
+                    return False
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Maison Élise App timed out; using Investigator rollback")
+            return False
+        except ClientError as err:
+            _LOGGER.warning(
+                "Maison Élise App unavailable (%s); using Investigator rollback", err
+            )
+            return False
+        except Exception:
+            _LOGGER.exception("Unexpected Maison Élise App request failure")
+            return False
+
+        if not isinstance(result, dict) or result.get("ok") is not True:
+            _LOGGER.warning("Maison Élise App rejected request; using Investigator rollback")
+            return False
+
+        answer_text = str(result.get("speech") or "").strip()
+        if not answer_text:
+            _LOGGER.warning(
+                "Maison Élise App returned no speech; using Investigator rollback"
+            )
+            return False
+
+        _LOGGER.info(
+            "Maison Élise Bridge received App answer; response_type=%s",
+            result.get("response_type"),
+        )
+        await announce_answer(answer_text, preferred_target)
+        return True
 
     async def process_question(question: str, preferred_target: str | None) -> None:
-        """Run Investigator outside the Alexa request and announce its answer later."""
+        """Use Maison Élise App first, with the proven Investigator path as rollback."""
+        if await try_maison_elise_app(question, preferred_target):
+            return
+
+        _LOGGER.info("Maison Élise Bridge using direct Investigator rollback")
         session = async_get_clientsession(hass)
         try:
             async with session.post(
@@ -252,7 +351,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             return
 
         _LOGGER.info(
-            "Maison Élise Bridge received Investigator answer; status=%s",
+            "Maison Élise Bridge received Investigator rollback answer; status=%s",
             result.get("status"),
         )
         await announce_answer(answer_text, preferred_target)
@@ -260,7 +359,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_webhook(
         hass: HomeAssistant, received_webhook_id: str, request: web.Request
     ) -> web.Response:
-        """Accept one read-only causal question and process it asynchronously."""
+        """Accept the unchanged Alexa payload and process it asynchronously."""
         if received_webhook_id != webhook_id:
             return web.json_response(
                 {"ok": False, "error": "invalid_webhook"}, status=403
@@ -302,7 +401,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         hass.async_create_task(
             process_question(question, preferred_target),
-            "Maison Élise Investigator request",
+            "Maison Élise App request",
         )
 
         return web.json_response(
@@ -332,15 +431,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass,
         (
             "La passerelle vocale Maison Élise est prête.\n\n"
-            "Copie cette URL dans le code Alexa-hosted quand Élise te le demandera :\n\n"
-            f"`{cloudhook_url}`\n\n"
-            "Cette URL est un secret : ne la publie pas."
+            "Le Cloudhook actuel est conservé pour la skill Maison Élise existante.\n\n"
+            "Ne modifie pas la skill ni cette URL pendant la migration App."
         ),
         title="Maison Élise Bridge",
         notification_id=NOTIFICATION_ID,
     )
 
-    _LOGGER.info("Maison Élise Bridge is ready in asynchronous mode")
+    _LOGGER.info("Maison Élise Bridge is ready in App-first mode with rollback")
     return True
 
 
