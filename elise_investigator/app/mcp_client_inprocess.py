@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from ipaddress import IPv4Address, IPv4Network, ip_address
 from pathlib import Path
 from urllib.parse import urlparse
@@ -28,11 +29,13 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
     and is stored only in /data/options.json. It is never returned by status/search
     endpoints.
 
-    Dev.22 deliberately stops guessing the exact secret-path format. It validates
-    only the local transport envelope (private IPv4, http, known local terrain
-    ports, non-empty path), then lets the MCP initialize + tools/list handshake
-    prove that the endpoint really is an MCP server. Read-only remains enforced by
-    the inherited fixed tool allow-list plus each MCP tool's readOnlyHint.
+    Dev.23 keeps the dev.22 handshake validation but normalizes copy/paste artefacts
+    before parsing the URL. Only Unicode whitespace and format characters (for
+    example line breaks, tabs, NBSP, zero-width spaces/marks) are removed. The
+    actual secret characters are otherwise left untouched. The endpoint is then
+    validated by the real MCP initialize + tools/list handshake. Read-only remains
+    enforced by the inherited fixed tool allow-list plus each MCP tool's
+    readOnlyHint.
     """
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
@@ -49,11 +52,21 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
             return ""
         if not isinstance(raw, dict):
             return ""
-        return str(raw.get("mcp_connect_url") or "").strip()
+        return str(raw.get("mcp_connect_url") or "")
+
+    @staticmethod
+    def _normalize_copied_url(value: str) -> str:
+        """Remove display/clipboard formatting chars without changing URL data."""
+        text = str(value or "")
+        return "".join(
+            char
+            for char in text
+            if not char.isspace() and unicodedata.category(char) != "Cf"
+        )
 
     @classmethod
     def _connection_from_url(cls, value: str) -> MCPConnection:
-        raw = str(value or "").strip()
+        raw = cls._normalize_copied_url(value)
         if not raw:
             raise MCPReadOnlyError(
                 "URL locale HA-MCP non configurée dans les paramètres de l'App"
@@ -144,8 +157,8 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
             }
 
     async def open_protocol(self) -> tuple[MCPConnection, MCPProtocolSession]:
-        # Dev.22: URL shape is no longer used as proof of identity. The actual
-        # MCP initialize + tools/list exchange below is the validation step.
+        # URL shape is not used as proof of identity. The actual MCP initialize
+        # + tools/list exchange below is the validation step.
         connection = await self.discover()
         protocol = MCPProtocolSession(self, connection)
         await protocol.initialize()
