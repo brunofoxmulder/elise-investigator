@@ -1,17 +1,18 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.20"
+version: "0.2.0-dev.21"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev20-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev21-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.20: HA-MCP est le serveur in-process de l'intégration HA-MCP Custom Component.
-# L'URL locale est fournie une fois via l'option masquée mcp_connect_url.
+# Dev.21: HA-MCP est le serveur in-process de l'intégration HA-MCP Custom Component.
+# mcp_connect_url est présent à la fois dans options et schema afin que Supervisor
+# affiche immédiatement le champ masqué sur une installation déjà existante.
 # Aucun accès Supervisor manager n'est nécessaire pour cette architecture.
 ingress: true
 ingress_port: 8099
@@ -28,6 +29,7 @@ options:
   log_level: info
   default_window_minutes: 30
   max_reverse_candidates: 25
+  mcp_connect_url: ""
 schema:
   log_level: list(debug|info|warning|error)
   default_window_minutes: int(5,180)
