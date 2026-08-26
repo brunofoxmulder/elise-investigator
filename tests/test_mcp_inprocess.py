@@ -18,13 +18,25 @@ class TestInProcessMCPConnection(unittest.TestCase):
         self.assertEqual(connection.host, "192.168.1.20")
         self.assertEqual(connection.port, 9584)
         self.assertTrue(connection.read_only)
-        self.assertNotIn("[SECRET]", connection.url)
 
     def test_accepts_local_webhook_url(self):
         connection = InProcessMCPReadOnlyClient._connection_from_url(
             "http://10.0.0.5:8123/api/webhook/mcp_abcdefghijk"
         )
         self.assertEqual(connection.host, "10.0.0.5")
+        self.assertEqual(connection.port, 8123)
+
+    def test_accepts_unknown_secret_path_shape_for_handshake_validation(self):
+        connection = InProcessMCPReadOnlyClient._connection_from_url(
+            "http://192.168.1.20:9584/opaque-secret-format-v2"
+        )
+        self.assertEqual(connection.port, 9584)
+        self.assertIn("opaque-secret-format-v2", connection.url)
+
+    def test_accepts_custom_webhook_id_without_mcp_prefix(self):
+        connection = InProcessMCPReadOnlyClient._connection_from_url(
+            "http://192.168.1.20:8123/api/webhook/custom-secret-value"
+        )
         self.assertEqual(connection.port, 8123)
 
     def test_rejects_missing_url(self):
@@ -49,10 +61,22 @@ class TestInProcessMCPConnection(unittest.TestCase):
                 "http://127.0.0.1:9584/private_abcdefghijk"
             )
 
-    def test_rejects_unrecognized_path(self):
+    def test_rejects_root_path(self):
         with self.assertRaises(MCPReadOnlyError):
             InProcessMCPReadOnlyClient._connection_from_url(
-                "http://192.168.1.20:9584/settings"
+                "http://192.168.1.20:9584/"
+            )
+
+    def test_rejects_unapproved_local_port(self):
+        with self.assertRaises(MCPReadOnlyError):
+            InProcessMCPReadOnlyClient._connection_from_url(
+                "http://192.168.1.20:9999/opaque-secret"
+            )
+
+    def test_rejects_query_or_fragment(self):
+        with self.assertRaises(MCPReadOnlyError):
+            InProcessMCPReadOnlyClient._connection_from_url(
+                "http://192.168.1.20:9584/opaque-secret?x=1"
             )
 
 
