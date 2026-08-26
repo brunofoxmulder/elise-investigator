@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: [main, dev17-mcp-console]
+    branches: [main, dev17-mcp-console, dev18-mcp-console-terrain]
   pull_request:
 
 permissions:
