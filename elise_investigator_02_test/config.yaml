@@ -1,20 +1,19 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.26"
+version: "0.2.0-dev.27"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev26-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev27-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.26: conserve la synthèse déterministe dev.24 et le garde-fou de contrat
-# dev.25. Lors d'une recherche MCP explicite seulement, l'app peut interroger
-# au plus 6 candidats, 3 traces récentes chacun et 1 détail compact. La proximité
-# temporelle n'est jamais une preuve causale, aucun LLM n'est utilisé et le
-# verdict Investigator reste inchangé.
+# Dev.27 conserve intégralement l'exploration MCP bornée validée en dev.26.
+# Seule évolution : un bouton Texte copie localement un résumé lisible et
+# volontairement limité du diagnostic MCP. Aucun envoi automatique, aucun nouvel
+# appel Home Assistant/MCP, aucun LLM et aucun changement du verdict Investigator.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
