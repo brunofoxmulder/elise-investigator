@@ -22,28 +22,32 @@ class TestCompatibleMCPDiscovery(unittest.TestCase):
         )
         self.assertEqual(slugs, ["abc123_ha-mcp"])
 
-    def test_accepts_official_metadata_with_unexpected_slug(self):
+    def test_accepts_official_name_with_unexpected_slug_and_no_source_metadata(self):
         slugs = CompatibleMCPReadOnlyClient._matching_slugs(
             [
                 {
                     "slug": "unexpected_store_identifier",
                     "name": "Home Assistant MCP Server",
-                    "url": "https://github.com/homeassistant-ai/ha-mcp",
                     "repository": "store-entry",
                 }
             ]
         )
         self.assertEqual(slugs, ["unexpected_store_identifier"])
 
-    def test_rejects_name_only_without_official_source(self):
+    def test_accepts_official_development_name(self):
         slugs = CompatibleMCPReadOnlyClient._matching_slugs(
             [
                 {
-                    "slug": "other_tool",
-                    "name": "Home Assistant MCP Server",
-                    "url": "https://example.invalid/not-ha-mcp",
+                    "slug": "unexpected_dev_identifier",
+                    "name": "Home Assistant MCP Server Development",
                 }
             ]
+        )
+        self.assertEqual(slugs, ["unexpected_dev_identifier"])
+
+    def test_rejects_unrelated_name(self):
+        slugs = CompatibleMCPReadOnlyClient._matching_slugs(
+            [{"slug": "other_tool", "name": "Another MCP Server"}]
         )
         self.assertEqual(slugs, [])
 
