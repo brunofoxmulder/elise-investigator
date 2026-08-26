@@ -1,0 +1,7 @@
+configuration:
+  mcp_connect_url:
+    name: URL locale HA-MCP
+    description: >-
+      Colle ici l'URL locale affichée dans HA-MCP Server > Configurer. Utilise
+      uniquement une URL Direct access ou Local/LAN contenant l'adresse IPv4
+      privée de Home Assistant. Cette valeur est masquée car l'URL contient un secret.
