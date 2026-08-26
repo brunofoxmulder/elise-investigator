@@ -1,19 +1,19 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.24"
+version: "0.2.0-dev.25"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev24-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev25-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.24: conserve la connexion HA-MCP in-process validée en dev.23 et ajoute
-# une synthèse locale déterministe des faits MCP. Aucun LLM n'est utilisé, le
-# verdict causal Investigator reste inchangé et aucun accès Supervisor manager
-# n'est nécessaire.
+# Dev.25: conserve intégralement le comportement dev.24 et ajoute uniquement
+# un probe de métadonnées tools/list pour le contrat live de
+# ha_get_automation_traces. Aucun appel de trace n'est effectué dans ce jalon,
+# aucun LLM n'est utilisé et le verdict causal Investigator reste inchangé.
 ingress: true
 ingress_port: 8099
 ingress_entry: /

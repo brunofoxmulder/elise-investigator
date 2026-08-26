@@ -2,8 +2,9 @@ name: Tests
 
 on:
   push:
-    branches: [main, dev17-mcp-console, dev18-mcp-console-terrain, dev19-mcp-discovery-terrain, dev20-mcp-inprocess-terrain, dev21-mcp-option-terrain, dev22-mcp-handshake-terrain, dev23-mcp-copy-normalization-terrain, dev24-mcp-local-synthesis-terrain]
+    branches: [main, dev17-mcp-console, dev18-mcp-console-terrain, dev19-mcp-discovery-terrain, dev20-mcp-inprocess-terrain, dev21-mcp-option-terrain, dev22-mcp-handshake-terrain, dev23-mcp-copy-normalization-terrain, dev24-mcp-local-synthesis-terrain, dev25-mcp-trace-contract-probe]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read

@@ -21,6 +21,7 @@ _PRIVATE_NETWORKS = (
 _ALLOWED_TERRAIN_PORTS = frozenset({8123, 9584})
 _MAX_PATH_LENGTH = 512
 _PATH_SECRET_RE = re.compile(r"/(?:private_[^/?#\s]+|api/webhook/[^/?#\s]+)")
+_TRACE_TOOL_NAME = "ha_get_automation_traces"
 
 
 class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
@@ -30,9 +31,9 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
     and is stored only in /data/options.json. It is never returned by status/search
     endpoints.
 
-    Dev.24 keeps the proven dev.23 local transport and adds a deterministic local
-    synthesis layer over the fixed read-only MCP recipe. No LLM is involved and
-    the synthesis is forbidden from assigning a causal verdict.
+    Dev.25 keeps the proven dev.24 synthesis unchanged and adds only a metadata
+    probe for the live ``ha_get_automation_traces`` MCP contract. The probe reads
+    the already-returned ``tools/list`` metadata and never calls the trace tool.
     """
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
@@ -128,12 +129,47 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
             return {str(key): cls.sanitize(item) for key, item in clean.items()}
         return clean
 
+    @classmethod
+    def _trace_contract_from_tools(cls, tools: dict[str, dict]) -> dict[str, object]:
+        """Extract the trace-tool contract from tools/list without calling it."""
+        if _TRACE_TOOL_NAME not in cls.ALLOWED_READ_TOOLS:
+            raise MCPReadOnlyError("Outil traces absent de l'allow-list Investigator")
+
+        tool = tools.get(_TRACE_TOOL_NAME)
+        if not isinstance(tool, dict):
+            raise MCPReadOnlyError("ha_get_automation_traces n'est pas exposé par HA-MCP")
+
+        annotations = tool.get("annotations")
+        if not isinstance(annotations, dict) or annotations.get("readOnlyHint") is not True:
+            raise MCPReadOnlyError(
+                "ha_get_automation_traces est refusé car non déclaré lecture seule"
+            )
+
+        schema = tool.get("inputSchema")
+        if not isinstance(schema, dict):
+            schema = {}
+
+        return {
+            "name": _TRACE_TOOL_NAME,
+            "inputSchema": cls.sanitize(schema),
+            "annotations": cls.sanitize(annotations),
+            "contract_only": True,
+            "tool_called": False,
+        }
+
     async def discover(self) -> MCPConnection:
         return self._connection_from_url(self._load_connect_url())
 
     async def status(self) -> dict[str, object]:
         try:
             connection, protocol = await self.open_protocol()
+            trace_contract = None
+            trace_contract_error = None
+            try:
+                trace_contract = self._trace_contract_from_tools(protocol.tools)
+            except MCPReadOnlyError as exc:
+                trace_contract_error = self.sanitize(str(exc))
+
             return {
                 "available": True,
                 "read_only": True,
@@ -144,6 +180,10 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
                 "allowed_tools_available": sorted(
                     self.ALLOWED_READ_TOOLS.intersection(protocol.tools)
                 ),
+                "trace_tool_contract": trace_contract,
+                "trace_tool_contract_error": trace_contract_error,
+                "trace_probe_mode": "tools_list_metadata_only",
+                "trace_tool_called": False,
             }
         except MCPReadOnlyError as exc:
             return {
@@ -151,6 +191,8 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
                 "read_only": True,
                 "provider": "ha_mcp_inprocess",
                 "error": self.sanitize(str(exc)),
+                "trace_probe_mode": "tools_list_metadata_only",
+                "trace_tool_called": False,
             }
 
     async def open_protocol(self) -> tuple[MCPConnection, MCPProtocolSession]:
@@ -163,7 +205,7 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
         return connection, protocol
 
     async def research_entity(self, entity_id: str, question: str) -> dict[str, object]:
-        """Run the proven read-only recipe, then synthesize facts locally."""
+        """Run the proven dev.24 read-only recipe and deterministic synthesis."""
         result = await super().research_entity(entity_id, question)
         raw_findings = result.get("findings")
         findings = raw_findings if isinstance(raw_findings, list) else []
@@ -180,7 +222,8 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
             "Synthèse locale déterministe sans LLM.",
             "Faits observés et pistes de configuration sont séparés.",
             "Aucun verdict causal Investigator n'est créé, augmenté ni modifié.",
-            "Une trace corrélée sera nécessaire avant toute montée en preuve causale.",
+            "Dev.25 inspecte uniquement le contrat de l'outil traces via tools/list.",
+            "ha_get_automation_traces n'est pas appelé par ce jalon.",
             "Seuls des outils MCP explicitement autorisés et déclarés readOnly sont appelés.",
         ]
         return result

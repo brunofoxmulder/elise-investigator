@@ -5,9 +5,10 @@ from aiohttp import web
 import main_mcp
 from mcp_client_inprocess import InProcessMCPReadOnlyClient
 
-# Terrain prototype 0.2.0-dev.24: keep the proven local HA-MCP transport and
-# add a deterministic local synthesis over the read-only MCP findings.
-main_mcp.VERSION = "0.2.0-dev.24"
+# Terrain prototype 0.2.0-dev.25: keep dev.24 behaviour unchanged and expose
+# only the live tools/list contract of ha_get_automation_traces. The trace tool
+# itself is not called by this checkpoint.
+main_mcp.VERSION = "0.2.0-dev.25"
 main_mcp.MCPReadOnlyClient = InProcessMCPReadOnlyClient
 
 
