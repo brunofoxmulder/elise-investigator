@@ -9,13 +9,18 @@ import main as base
 from mcp_client import MCPReadOnlyClient, MCPReadOnlyError
 from ui import INDEX_HTML as BASE_INDEX_HTML
 
-VERSION = "0.2.0-dev.24"
+VERSION = "0.2.0-dev.25"
 
 _MCP_CARD = r'''
 <div id="mcp_console" class="card">
   <p class="section-title">Recherche MCP locale</p>
   <p class="section-sub">Recherche multi-outils strictement en lecture seule. La synthèse est produite localement, sans IA, et ne modifie jamais le verdict causal d’Investigator.</p>
   <p id="mcp_status" class="small">Vérification de HA-MCP…</p>
+  <details id="mcp_trace_contract_box" class="hidden">
+    <summary>Contrat live ha_get_automation_traces</summary>
+    <p id="mcp_trace_contract_note" class="small"></p>
+    <pre id="mcp_trace_contract_json"></pre>
+  </details>
   <label for="mcp_question">Question</label>
   <textarea id="mcp_question" placeholder="Ex. Pourquoi le volet salon est-il arrivé à 40 % ?"></textarea>
   <button id="mcp_go" type="button">Rechercher avec MCP</button>
@@ -33,12 +38,25 @@ _MCP_CARD = r'''
 _MCP_SCRIPT = r'''
 const mcpStatusEl=document.getElementById('mcp_status'),mcpGo=document.getElementById('mcp_go'),mcpQuestion=document.getElementById('mcp_question');
 const mcpResult=document.getElementById('mcp_result'),mcpResultStatus=document.getElementById('mcp_result_status'),mcpAnswer=document.getElementById('mcp_answer'),mcpProvenance=document.getElementById('mcp_provenance'),mcpTools=document.getElementById('mcp_tools'),mcpJson=document.getElementById('mcp_json');
+const mcpTraceBox=document.getElementById('mcp_trace_contract_box'),mcpTraceNote=document.getElementById('mcp_trace_contract_note'),mcpTraceJson=document.getElementById('mcp_trace_contract_json');
 let mcpAvailable=false;
 async function loadMcpStatus(){
  try{
   const r=await fetch(api('api/v1/mcp/status'));const d=await r.json();
   mcpAvailable=!!d.available;
-  if(mcpAvailable){const tools=Array.isArray(d.allowed_tools_available)?d.allowed_tools_available.join(', '):'';mcpStatusEl.textContent='HA-MCP connecté · lecture seule imposée par Investigator · '+(d.tool_count||0)+' outils'+(tools?' · autorisés ici : '+tools:'');}
+  if(mcpAvailable){
+   const tools=Array.isArray(d.allowed_tools_available)?d.allowed_tools_available.join(', '):'';
+   mcpStatusEl.textContent='HA-MCP connecté · lecture seule imposée par Investigator · '+(d.tool_count||0)+' outils'+(tools?' · autorisés ici : '+tools:'');
+   const contract=d.trace_tool_contract;
+   if(contract){
+    mcpTraceNote.textContent='Probe dev.25 : métadonnées tools/list uniquement · outil traces appelé : non';
+    mcpTraceJson.textContent=JSON.stringify({inputSchema:contract.inputSchema||{},annotations:contract.annotations||{}},null,2);
+    mcpTraceBox.classList.remove('hidden');
+   }else if(d.trace_tool_contract_error){
+    mcpTraceNote.textContent='Contrat traces indisponible : '+d.trace_tool_contract_error;
+    mcpTraceJson.textContent='';mcpTraceBox.classList.remove('hidden');
+   }
+  }
   else{mcpStatusEl.textContent='HA-MCP indisponible : '+(d.error||'connexion non validée');}
  }catch(err){mcpAvailable=false;mcpStatusEl.textContent='HA-MCP indisponible : '+err.message;}
  mcpGo.disabled=!mcpAvailable;
