@@ -5,10 +5,9 @@ from aiohttp import web
 import main_mcp
 from mcp_client_inprocess import InProcessMCPReadOnlyClient
 
-# Terrain prototype 0.2.0-dev.23: keep the existing Investigator + MCP console
-# unchanged, normalize clipboard formatting artefacts in the configured local
-# HA-MCP URL, then validate the endpoint with the real MCP handshake.
-main_mcp.VERSION = "0.2.0-dev.23"
+# Terrain prototype 0.2.0-dev.24: keep the proven local HA-MCP transport and
+# add a deterministic local synthesis over the read-only MCP findings.
+main_mcp.VERSION = "0.2.0-dev.24"
 main_mcp.MCPReadOnlyClient = InProcessMCPReadOnlyClient
 
 
