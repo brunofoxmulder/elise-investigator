@@ -1,19 +1,19 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.27"
+version: "0.2.0-dev.28"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev27-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev28-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.27 conserve intégralement l'exploration MCP bornée validée en dev.26.
-# Seule évolution : un bouton Texte copie localement un résumé lisible et
-# volontairement limité du diagnostic MCP. Aucun envoi automatique, aucun nouvel
-# appel Home Assistant/MCP, aucun LLM et aucun changement du verdict Investigator.
+# Dev.28 conserve intégralement l'exploration MCP bornée validée en dev.26
+# et le bouton Texte validé en dev.27. Seule évolution : la carte MCP possède
+# son propre sélecteur d'objet, alimenté par le même catalogue read-only.
+# Investigator n'a plus besoin d'être exécuté avant une recherche MCP.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
