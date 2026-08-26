@@ -41,7 +41,14 @@ Bornes fixes du jalon :
 
 ## Politique de sélection
 
-La trace détaillée est choisie uniquement par proximité entre le `timestamp` de la trace listée et le dernier événement History observé.
+La trace détaillée est choisie uniquement par proximité temporelle avec le dernier événement History observé.
+
+Lorsque HA-MCP fournit un intervalle `timestamp.start → timestamp.finish`, dev.26 réutilise la règle prudente déjà validée dans l’historique Investigator :
+
+- événement situé pendant l’exécution → distance 0 ;
+- événement après la fin → distance à `finish` ;
+- événement avant le démarrage → distance à `start` ;
+- `finish` absent → comparaison conservatrice avec `start` uniquement.
 
 Cette sélection est explicitement marquée :
 
@@ -86,6 +93,7 @@ Le but est de conserver la structure d’exécution utile sans injecter des cent
 La suite dev.26 vérifie au minimum :
 
 - sélection d’une seule trace temporellement proche ;
+- prise en compte d’un intervalle `start → finish` ;
 - un seul appel de détail ;
 - 6 candidats maximum ;
 - `limit=3` sur chaque liste ;
