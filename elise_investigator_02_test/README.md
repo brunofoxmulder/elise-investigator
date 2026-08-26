@@ -2,7 +2,7 @@
 
 Manifest public minimal pour préparer la candidate privée `0.2.0-dev.17` sous Home Assistant OS.
 
-- L'application de test utilise l'image privée `ghcr.io/brunofoxmulder/elise-investigator-private:0.2.0-dev.17` lorsqu'elle sera construite et publiée.
+- L'application de test utilise l'image privée isolée `ghcr.io/brunofoxmulder/elise-investigator-dev17-private:0.2.0-dev.17`.
 - Architecture de test : `amd64` uniquement.
 - Démarrage : manuel.
 - Ingress activé.
@@ -15,6 +15,6 @@ Manifest public minimal pour préparer la candidate privée `0.2.0-dev.17` sous 
 - Pour la découverte automatique de l'App HA-MCP et de son option `secret_path`, la candidate test demande `hassio_api: true` avec rôle `manager`; le code n'implémente que des lectures Supervisor explicitement autorisées (`/addons`, `/addons/<slug>/info`, `/network/info`) et aucun POST Supervisor.
 - Première recette locale sans IA : état → historique → recherche des automatisations/scripts liés. Elle ne modifie aucun verdict Investigator.
 - Le chemin réseau `Élise Investigator App → IP hôte HA:9583 → HA-MCP` reste à valider sur le terrain.
-- L'image privée `0.2.0-dev.17` n'est pas encore déclarée construite/publiée : ne pas installer avant validation du pipeline d'image.
+- L'image `0.2.0-dev.17` a été construite, publiée et vérifiée par GitHub Actions dans un package GHCR privé dédié au prototype, sans modifier le package privé historique.
 
-Cette entrée est expérimentale. Aucun merge vers `main` ni installation terrain ne doit être effectué avant validation explicite.
+Cette entrée est expérimentale. Aucun merge vers `main` ne doit être effectué avant validation terrain explicite.
