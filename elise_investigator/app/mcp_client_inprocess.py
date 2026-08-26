@@ -11,6 +11,7 @@ import aiohttp
 
 from mcp_client import MCPConnection, MCPProtocolSession, MCPReadOnlyClient, MCPReadOnlyError
 from mcp_synthesis import synthesize_mcp_findings
+from mcp_trace_explorer import explore_bounded_traces
 
 _OPTIONS_FILE = Path("/data/options.json")
 _PRIVATE_NETWORKS = (
@@ -31,9 +32,11 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
     and is stored only in /data/options.json. It is never returned by status/search
     endpoints.
 
-    Dev.25 keeps the proven dev.24 synthesis unchanged and adds only a metadata
-    probe for the live ``ha_get_automation_traces`` MCP contract. The probe reads
-    the already-returned ``tools/list`` metadata and never calls the trace tool.
+    Dev.26 keeps the proven dev.24 synthesis and dev.25 live contract guard, then
+    adds a bounded read-only trace exploration: a short list of configuration
+    candidates, a short list of recent traces per candidate, and at most one
+    compact detail selected by temporal proximity. This layer never assigns a
+    causal verdict.
     """
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
@@ -184,6 +187,7 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
                 "trace_tool_contract_error": trace_contract_error,
                 "trace_probe_mode": "tools_list_metadata_only",
                 "trace_tool_called": False,
+                "bounded_trace_exploration_available": trace_contract is not None,
             }
         except MCPReadOnlyError as exc:
             return {
@@ -193,6 +197,7 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
                 "error": self.sanitize(str(exc)),
                 "trace_probe_mode": "tools_list_metadata_only",
                 "trace_tool_called": False,
+                "bounded_trace_exploration_available": False,
             }
 
     async def open_protocol(self) -> tuple[MCPConnection, MCPProtocolSession]:
@@ -204,26 +209,87 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
         await protocol.list_tools()
         return connection, protocol
 
+    @staticmethod
+    def _trace_summary(exploration: dict[str, object]) -> str:
+        if exploration.get("status") == "detail_selected":
+            selected = exploration.get("selected_run")
+            if isinstance(selected, dict):
+                entity_id = selected.get("automation_id")
+                distance = selected.get("distance_seconds")
+                distance_text = (
+                    f" à {round(float(distance))} s de l'événement observé"
+                    if isinstance(distance, (int, float))
+                    else ""
+                )
+                return (
+                    " Exploration de traces bornée : une exécution de "
+                    f"{entity_id}{distance_text} a été examinée comme piste temporelle. "
+                    "Cette sélection n'est pas une preuve causale et ne modifie pas le verdict Investigator."
+                )
+        if exploration.get("trace_tool_called") is True:
+            return (
+                " Exploration de traces bornée : les listes récentes ont été consultées, "
+                "mais aucun détail n'a été retenu dans la fenêtre temporelle de 30 minutes. "
+                "Aucun verdict causal n'est créé."
+            )
+        reason = exploration.get("reason")
+        if isinstance(reason, str) and reason:
+            return f" Exploration de traces non déclenchée : {reason}"
+        return ""
+
     async def research_entity(self, entity_id: str, question: str) -> dict[str, object]:
-        """Run the proven dev.24 read-only recipe and deterministic synthesis."""
+        """Run dev.24 synthesis, then dev.26 bounded read-only trace exploration."""
         result = await super().research_entity(entity_id, question)
         raw_findings = result.get("findings")
         findings = raw_findings if isinstance(raw_findings, list) else []
         synthesis = synthesize_mcp_findings(entity_id, question, findings)
 
-        # Never let this layer become an alternative causal authority. It is a
-        # presentation/synthesis layer over read-only facts only.
-        result["mode"] = "deterministic_local_synthesis"
+        try:
+            _, protocol = await self.open_protocol()
+            exploration = await explore_bounded_traces(protocol, synthesis, self.sanitize)
+        except MCPReadOnlyError as exc:
+            exploration = {
+                "mode": "bounded_read_only_trace_exploration",
+                "read_only": True,
+                "uses_llm": False,
+                "trace_tool_called": False,
+                "status": "error",
+                "reason": self.sanitize(str(exc)),
+                "selection_is_causal_proof": False,
+                "causal_verdict": None,
+                "investigator_status_unchanged": True,
+            }
+
+        synthesis["answer"] = synthesis["answer"] + self._trace_summary(exploration)
+        synthesis["trace_exploration_summary"] = {
+            "status": exploration.get("status"),
+            "trace_tool_called": exploration.get("trace_tool_called", False),
+            "candidates_queried": exploration.get("candidates_queried", 0),
+            "selected_run": exploration.get("selected_run"),
+            "selection_is_causal_proof": False,
+        }
+
+        result["mode"] = "deterministic_local_synthesis_with_bounded_traces"
         result["answer"] = synthesis["answer"]
         result["local_synthesis"] = synthesis
+        result["trace_exploration"] = exploration
         result["causal_verdict"] = None
         result["investigator_status_unchanged"] = True
+
+        tools_used = result.get("tools_used")
+        if not isinstance(tools_used, list):
+            tools_used = []
+            result["tools_used"] = tools_used
+        if exploration.get("trace_tool_called") is True and _TRACE_TOOL_NAME not in tools_used:
+            tools_used.append(_TRACE_TOOL_NAME)
+
         result["limits"] = [
             "Synthèse locale déterministe sans LLM.",
             "Faits observés et pistes de configuration sont séparés.",
+            "Exploration bornée à 6 candidats, 3 traces récentes par candidat et 1 détail maximum.",
+            "La trace détaillée est compactée et les snapshots de variables sont écartés.",
+            "La proximité temporelle sert uniquement à choisir une trace à examiner, jamais à prouver la cause.",
             "Aucun verdict causal Investigator n'est créé, augmenté ni modifié.",
-            "Dev.25 inspecte uniquement le contrat de l'outil traces via tools/list.",
-            "ha_get_automation_traces n'est pas appelé par ce jalon.",
             "Seuls des outils MCP explicitement autorisés et déclarés readOnly sont appelés.",
         ]
         return result
