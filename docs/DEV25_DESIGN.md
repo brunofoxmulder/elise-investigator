@@ -56,6 +56,10 @@ La suite dev.25 vérifie notamment :
 - `ha_get_automation_traces` provoque un échec immédiat du test s’il est appelé par erreur ;
 - le verdict causal reste inchangé.
 
+## Distribution privée
+
+La branche de travail est `dev25-mcp-trace-contract-probe`. La PR reste brouillon et est basée sur dev.24 afin que la revue ne montre que l’incrément dev.25. Le manifeste de test référence l’image privée `ghcr.io/brunofoxmulder/elise-investigator-dev25-private:0.2.0-dev.25`. Aucun merge vers `main` n’est prévu à ce stade.
+
 ## Critère terrain
 
 Après CI et image privée validées, une installation manuelle ne sera proposée que sur Go explicite de Bruno.
