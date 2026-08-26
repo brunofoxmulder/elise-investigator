@@ -16,8 +16,9 @@ _PRIVATE_NETWORKS = (
     IPv4Network("172.16.0.0/12"),
     IPv4Network("192.168.0.0/16"),
 )
-_DIRECT_PATH_RE = re.compile(r"^/private_[A-Za-z0-9_-]{8,}/?$")
-_WEBHOOK_PATH_RE = re.compile(r"^/api/webhook/mcp_[A-Za-z0-9_-]{8,}/?$")
+_ALLOWED_TERRAIN_PORTS = frozenset({8123, 9584})
+_MAX_PATH_LENGTH = 512
+_PATH_SECRET_RE = re.compile(r"/(?:private_[^/?#\s]+|api/webhook/[^/?#\s]+)")
 
 
 class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
@@ -25,11 +26,13 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
 
     The connect URL is supplied once through the Home Assistant App configuration
     and is stored only in /data/options.json. It is never returned by status/search
-    endpoints. Only local RFC1918 HTTP endpoints are accepted.
+    endpoints.
 
-    This client deliberately does not use the Supervisor add-on inventory and does
-    not need hassio_api/manager privileges. Read-only is enforced by the inherited
-    fixed tool allow-list plus each MCP tool's readOnlyHint.
+    Dev.22 deliberately stops guessing the exact secret-path format. It validates
+    only the local transport envelope (private IPv4, http, known local terrain
+    ports, non-empty path), then lets the MCP initialize + tools/list handshake
+    prove that the endpoint really is an MCP server. Read-only remains enforced by
+    the inherited fixed tool allow-list plus each MCP tool's readOnlyHint.
     """
 
     def __init__(self, session: aiohttp.ClientSession) -> None:
@@ -84,18 +87,18 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
             port = parsed.port
         except ValueError as exc:
             raise MCPReadOnlyError("Port HA-MCP invalide") from exc
-        if not port or port < 1 or port > 65535:
-            raise MCPReadOnlyError("Port HA-MCP absent ou invalide")
-
-        path = parsed.path or ""
-        direct = bool(_DIRECT_PATH_RE.fullmatch(path))
-        webhook = bool(_WEBHOOK_PATH_RE.fullmatch(path))
-        if not direct and not webhook:
+        if port not in _ALLOWED_TERRAIN_PORTS:
             raise MCPReadOnlyError(
-                "URL HA-MCP non reconnue: utilise l'URL locale Direct access ou Local/LAN affichée par HA-MCP"
+                "Port HA-MCP non autorisé pour ce prototype local (8123 ou 9584)"
             )
 
-        canonical_path = path.rstrip("/")
+        path = parsed.path or ""
+        if path in {"", "/"} or len(path) > _MAX_PATH_LENGTH:
+            raise MCPReadOnlyError("Chemin de connexion HA-MCP absent ou invalide")
+        if any(ord(char) < 33 or char.isspace() for char in path):
+            raise MCPReadOnlyError("Chemin de connexion HA-MCP invalide")
+
+        canonical_path = path.rstrip("/") or "/"
         return MCPConnection(
             slug="ha_mcp_tools_server",
             url=f"http://{address}:{port}{canonical_path}",
@@ -103,6 +106,17 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
             port=port,
             read_only=True,
         )
+
+    @classmethod
+    def sanitize(cls, value):
+        clean = super().sanitize(value)
+        if isinstance(clean, str):
+            return _PATH_SECRET_RE.sub("/[REDACTED_MCP_PATH]", clean)
+        if isinstance(clean, list):
+            return [cls.sanitize(item) for item in clean]
+        if isinstance(clean, dict):
+            return {str(key): cls.sanitize(item) for key, item in clean.items()}
+        return clean
 
     async def discover(self) -> MCPConnection:
         return self._connection_from_url(self._load_connect_url())
@@ -130,8 +144,8 @@ class InProcessMCPReadOnlyClient(MCPReadOnlyClient):
             }
 
     async def open_protocol(self) -> tuple[MCPConnection, MCPProtocolSession]:
-        # Kept explicit here so the adapter contract is self-contained even if
-        # the legacy Supervisor discovery changes later.
+        # Dev.22: URL shape is no longer used as proof of identity. The actual
+        # MCP initialize + tools/list exchange below is the validation step.
         connection = await self.discover()
         protocol = MCPProtocolSession(self, connection)
         await protocol.initialize()
