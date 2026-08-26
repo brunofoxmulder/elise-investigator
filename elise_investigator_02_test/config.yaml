@@ -1,20 +1,20 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.22"
+version: "0.2.0-dev.23"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev22-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev23-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.22: HA-MCP est le serveur in-process de l'intégration HA-MCP Custom Component.
-# L'URL locale reste saisie une seule fois dans le champ masqué. Investigator ne
-# suppose plus la forme exacte du chemin secret : il valide le transport local,
-# puis le vrai handshake MCP (initialize + tools/list) prouve l'endpoint.
-# Aucun accès Supervisor manager n'est nécessaire pour cette architecture.
+# Dev.23: conserve la connexion HA-MCP in-process de dev.22 mais normalise les
+# caractères de mise en forme ajoutés par certains copier/coller mobiles
+# (espaces Unicode, retours ligne, tabulations, caractères zero-width) avant
+# le vrai handshake MCP. Le secret n'est jamais exposé et aucun accès Supervisor
+# manager n'est nécessaire.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
