@@ -13,12 +13,36 @@ import main_mcp
 from mcp_trace_explorer import MAX_CANDIDATES, TRACE_LIST_LIMIT
 
 
-class TestDev27TextExportUI(unittest.TestCase):
-    def test_version_and_button_are_dev27(self):
-        self.assertEqual(main_mcp.VERSION, "0.2.0-dev.27")
+class TestDev28MCPUI(unittest.TestCase):
+    def test_version_text_button_and_independent_picker_are_dev28(self):
+        self.assertEqual(main_mcp.VERSION, "0.2.0-dev.28")
+        self.assertIn('id="mcp_entity_search"', main_mcp._MCP_CARD)
+        self.assertIn('id="mcp_entity"', main_mcp._MCP_CARD)
+        self.assertIn("Sélecteur MCP autonome", main_mcp._MCP_CARD)
         self.assertIn('id="mcp_copy_text"', main_mcp._MCP_CARD)
         self.assertIn('>Texte</button>', main_mcp._MCP_CARD)
         self.assertIn("Rien n'est envoyé automatiquement", main_mcp._MCP_CARD)
+
+    def test_mcp_picker_uses_existing_read_only_entity_catalog(self):
+        script = main_mcp._MCP_SCRIPT
+        self.assertIn("async function loadMcpEntities()", script)
+        self.assertIn("fetch(api('api/v1/entities'))", script)
+        self.assertIn("function findMcpMatches", script)
+        self.assertIn("function mcpSetSelected", script)
+        self.assertIn("mcpEntitySearch.addEventListener('input'", script)
+
+    def test_mcp_search_no_longer_depends_on_investigator_picker(self):
+        script = main_mcp._MCP_SCRIPT
+        start = script.index("mcpGo.addEventListener")
+        end = script.index("loadMcpEntities().catch", start)
+        handler = script[start:end]
+
+        self.assertIn("mcpEntityEl.value", handler)
+        self.assertIn("entity_id:mcpEntityEl.value", handler)
+        self.assertNotIn("entityEl.value", handler)
+        self.assertNotIn("loadEntities()", handler)
+        self.assertNotIn("resolveTypedValue()", handler)
+        self.assertNotIn("renderError(", handler)
 
     def test_export_is_compact_and_does_not_copy_raw_mcp_payload(self):
         script = main_mcp._MCP_SCRIPT
@@ -43,9 +67,6 @@ class TestDev27TextExportUI(unittest.TestCase):
         ):
             self.assertIn(expected, builder)
 
-        # The text export is intentionally reconstructed from selected fields.
-        # It must never dump the complete result object, which contains the MCP
-        # connection metadata and can include an endpoint.
         self.assertNotIn("JSON.stringify(d", builder)
         self.assertNotIn("d.mcp", builder)
         self.assertNotIn("endpoint", builder.lower())
