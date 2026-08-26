@@ -41,6 +41,7 @@ _MCP_CARD = r'''
 '''
 
 _MCP_SCRIPT = r'''
+const MCP_UI_VERSION='0.2.0-dev.27';
 const mcpStatusEl=document.getElementById('mcp_status'),mcpGo=document.getElementById('mcp_go'),mcpQuestion=document.getElementById('mcp_question');
 const mcpResult=document.getElementById('mcp_result'),mcpResultStatus=document.getElementById('mcp_result_status'),mcpAnswer=document.getElementById('mcp_answer'),mcpProvenance=document.getElementById('mcp_provenance'),mcpTools=document.getElementById('mcp_tools'),mcpTraceSummary=document.getElementById('mcp_trace_summary'),mcpJson=document.getElementById('mcp_json');
 const mcpTraceBox=document.getElementById('mcp_trace_contract_box'),mcpTraceNote=document.getElementById('mcp_trace_contract_note'),mcpTraceJson=document.getElementById('mcp_trace_contract_json');
@@ -58,7 +59,7 @@ function buildMcpShareText(d){
  const label=entity?entityLabel(entity):(d.entity_id||'');
  const lines=[
   'ÉLISE INVESTIGATOR — RÉSUMÉ MCP',
-  'Version: '+VERSION,
+  'Version: '+MCP_UI_VERSION,
   'Objet: '+label,
   'Entity ID: '+(d.entity_id||''),
   'Question: '+(d.question||''),
