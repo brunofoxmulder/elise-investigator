@@ -9,12 +9,12 @@ import main as base
 from mcp_client import MCPReadOnlyClient, MCPReadOnlyError
 from ui import INDEX_HTML as BASE_INDEX_HTML
 
-VERSION = "0.2.0-dev.20"
+VERSION = "0.2.0-dev.24"
 
 _MCP_CARD = r'''
 <div id="mcp_console" class="card">
   <p class="section-title">Recherche MCP locale</p>
-  <p class="section-sub">Prototype multi-outils, strictement en lecture seule et sans IA. Il utilise l’objet sélectionné dans l’investigation ci-dessus.</p>
+  <p class="section-sub">Recherche multi-outils strictement en lecture seule. La synthèse est produite localement, sans IA, et ne modifie jamais le verdict causal d’Investigator.</p>
   <p id="mcp_status" class="small">Vérification de HA-MCP…</p>
   <label for="mcp_question">Question</label>
   <textarea id="mcp_question" placeholder="Ex. Pourquoi le volet salon est-il arrivé à 40 % ?"></textarea>
@@ -24,14 +24,15 @@ _MCP_CARD = r'''
 <div id="mcp_result" class="card hidden">
   <div id="mcp_result_status" class="status"></div>
   <p id="mcp_answer"></p>
+  <p id="mcp_provenance" class="small"></p>
   <p id="mcp_tools" class="small"></p>
-  <details open><summary>Résultats MCP structurés</summary><pre id="mcp_json"></pre></details>
+  <details><summary>Preuves et résultats MCP structurés</summary><pre id="mcp_json"></pre></details>
 </div>
 '''
 
 _MCP_SCRIPT = r'''
 const mcpStatusEl=document.getElementById('mcp_status'),mcpGo=document.getElementById('mcp_go'),mcpQuestion=document.getElementById('mcp_question');
-const mcpResult=document.getElementById('mcp_result'),mcpResultStatus=document.getElementById('mcp_result_status'),mcpAnswer=document.getElementById('mcp_answer'),mcpTools=document.getElementById('mcp_tools'),mcpJson=document.getElementById('mcp_json');
+const mcpResult=document.getElementById('mcp_result'),mcpResultStatus=document.getElementById('mcp_result_status'),mcpAnswer=document.getElementById('mcp_answer'),mcpProvenance=document.getElementById('mcp_provenance'),mcpTools=document.getElementById('mcp_tools'),mcpJson=document.getElementById('mcp_json');
 let mcpAvailable=false;
 async function loadMcpStatus(){
  try{
@@ -50,9 +51,13 @@ mcpGo.addEventListener('click',async()=>{
  try{
   const r=await fetch(api('api/v1/mcp/search'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entity_id:entityEl.value,question})});
   const d=await r.json();if(!r.ok)throw new Error(d.error||'Recherche MCP impossible');
-  mcpResultStatus.textContent=d.success?'MCP LOCAL · LECTURE SEULE':'MCP LOCAL · PARTIEL';mcpResultStatus.className='status '+(d.success?'confirmed':'indeterminate');
-  mcpAnswer.textContent=d.answer||'';mcpTools.textContent='Outils utilisés : '+((d.tools_used||[]).join(', ')||'aucun');mcpJson.textContent=JSON.stringify(d,null,2);mcpResult.classList.remove('hidden');mcpResult.scrollIntoView({behavior:'smooth',block:'nearest'});
- }catch(err){mcpResultStatus.textContent='MCP LOCAL · ERREUR';mcpResultStatus.className='status indeterminate';mcpAnswer.textContent=err.message;mcpTools.textContent='';mcpJson.textContent='';mcpResult.classList.remove('hidden');}
+  const synth=d.local_synthesis||{};
+  mcpResultStatus.textContent=d.success?'MCP LOCAL · SYNTHÈSE DÉTERMINISTE · LECTURE SEULE':'MCP LOCAL · PARTIEL';mcpResultStatus.className='status '+(d.success?'confirmed':'indeterminate');
+  mcpAnswer.textContent=synth.answer||d.answer||'';
+  mcpProvenance.textContent='Source : '+(synth.source||'Recherche MCP locale')+' · IA : '+(synth.uses_llm?'oui':'non')+' · Verdict causal Investigator : inchangé';
+  mcpTools.textContent='Outils utilisés : '+((d.tools_used||[]).join(', ')||'aucun');
+  mcpJson.textContent=JSON.stringify(d,null,2);mcpResult.classList.remove('hidden');mcpResult.scrollIntoView({behavior:'smooth',block:'nearest'});
+ }catch(err){mcpResultStatus.textContent='MCP LOCAL · ERREUR';mcpResultStatus.className='status indeterminate';mcpAnswer.textContent=err.message;mcpProvenance.textContent='';mcpTools.textContent='';mcpJson.textContent='';mcpResult.classList.remove('hidden');}
  finally{mcpGo.textContent='Rechercher avec MCP';mcpGo.disabled=!mcpAvailable;}
 });
 loadMcpStatus();
@@ -110,7 +115,7 @@ async def mcp_search(request: web.Request) -> web.Response:
 
 async def create_app() -> web.Application:
     # Reuse the proven Investigator application unchanged, then attach the MCP
-    # console as an isolated extension. This keeps dev.16 behavior available.
+    # console as an isolated extension. This keeps the deterministic core intact.
     base.VERSION = VERSION
     base.index = index
     app = await base.create_app()
