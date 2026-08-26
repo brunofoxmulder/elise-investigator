@@ -9,7 +9,7 @@ import main as base
 from mcp_client import MCPReadOnlyClient, MCPReadOnlyError
 from ui import INDEX_HTML as BASE_INDEX_HTML
 
-VERSION = "0.2.0-dev.25"
+VERSION = "0.2.0-dev.26"
 
 _MCP_CARD = r'''
 <div id="mcp_console" class="card">
@@ -31,13 +31,14 @@ _MCP_CARD = r'''
   <p id="mcp_answer"></p>
   <p id="mcp_provenance" class="small"></p>
   <p id="mcp_tools" class="small"></p>
+  <p id="mcp_trace_summary" class="small"></p>
   <details><summary>Preuves et résultats MCP structurés</summary><pre id="mcp_json"></pre></details>
 </div>
 '''
 
 _MCP_SCRIPT = r'''
 const mcpStatusEl=document.getElementById('mcp_status'),mcpGo=document.getElementById('mcp_go'),mcpQuestion=document.getElementById('mcp_question');
-const mcpResult=document.getElementById('mcp_result'),mcpResultStatus=document.getElementById('mcp_result_status'),mcpAnswer=document.getElementById('mcp_answer'),mcpProvenance=document.getElementById('mcp_provenance'),mcpTools=document.getElementById('mcp_tools'),mcpJson=document.getElementById('mcp_json');
+const mcpResult=document.getElementById('mcp_result'),mcpResultStatus=document.getElementById('mcp_result_status'),mcpAnswer=document.getElementById('mcp_answer'),mcpProvenance=document.getElementById('mcp_provenance'),mcpTools=document.getElementById('mcp_tools'),mcpTraceSummary=document.getElementById('mcp_trace_summary'),mcpJson=document.getElementById('mcp_json');
 const mcpTraceBox=document.getElementById('mcp_trace_contract_box'),mcpTraceNote=document.getElementById('mcp_trace_contract_note'),mcpTraceJson=document.getElementById('mcp_trace_contract_json');
 let mcpAvailable=false;
 async function loadMcpStatus(){
@@ -49,7 +50,7 @@ async function loadMcpStatus(){
    mcpStatusEl.textContent='HA-MCP connecté · lecture seule imposée par Investigator · '+(d.tool_count||0)+' outils'+(tools?' · autorisés ici : '+tools:'');
    const contract=d.trace_tool_contract;
    if(contract){
-    mcpTraceNote.textContent='Probe dev.25 : métadonnées tools/list uniquement · outil traces appelé : non';
+    mcpTraceNote.textContent='Contrat validé en dev.25 · ouvrir ce panneau n’appelle aucune trace. Dev.26 n’utilise l’outil que pendant une recherche bornée.';
     mcpTraceJson.textContent=JSON.stringify({inputSchema:contract.inputSchema||{},annotations:contract.annotations||{}},null,2);
     mcpTraceBox.classList.remove('hidden');
    }else if(d.trace_tool_contract_error){
@@ -69,13 +70,16 @@ mcpGo.addEventListener('click',async()=>{
  try{
   const r=await fetch(api('api/v1/mcp/search'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({entity_id:entityEl.value,question})});
   const d=await r.json();if(!r.ok)throw new Error(d.error||'Recherche MCP impossible');
-  const synth=d.local_synthesis||{};
-  mcpResultStatus.textContent=d.success?'MCP LOCAL · SYNTHÈSE DÉTERMINISTE · LECTURE SEULE':'MCP LOCAL · PARTIEL';mcpResultStatus.className='status '+(d.success?'confirmed':'indeterminate');
+  const synth=d.local_synthesis||{},explore=d.trace_exploration||{};
+  const explored=explore.trace_tool_called===true;
+  mcpResultStatus.textContent=explored?'MCP LOCAL · EXPLORATION BORNÉE · LECTURE SEULE':(d.success?'MCP LOCAL · SYNTHÈSE DÉTERMINISTE · LECTURE SEULE':'MCP LOCAL · PARTIEL');mcpResultStatus.className='status '+(d.success?'confirmed':'indeterminate');
   mcpAnswer.textContent=synth.answer||d.answer||'';
   mcpProvenance.textContent='Source : '+(synth.source||'Recherche MCP locale')+' · IA : '+(synth.uses_llm?'oui':'non')+' · Verdict causal Investigator : inchangé';
   mcpTools.textContent='Outils utilisés : '+((d.tools_used||[]).join(', ')||'aucun');
+  if(explored){const selected=explore.selected_run||{};mcpTraceSummary.textContent='Traces : '+(explore.candidates_queried||0)+' candidat(s) interrogé(s) · détail : '+(explore.selected_run_detail?'1':'0')+' · sélection temporelle = preuve causale : non'+(selected.automation_id?' · piste détaillée : '+selected.automation_id:'');}
+  else{mcpTraceSummary.textContent='Traces : non appelées'+(explore.reason?' · '+explore.reason:'');}
   mcpJson.textContent=JSON.stringify(d,null,2);mcpResult.classList.remove('hidden');mcpResult.scrollIntoView({behavior:'smooth',block:'nearest'});
- }catch(err){mcpResultStatus.textContent='MCP LOCAL · ERREUR';mcpResultStatus.className='status indeterminate';mcpAnswer.textContent=err.message;mcpProvenance.textContent='';mcpTools.textContent='';mcpJson.textContent='';mcpResult.classList.remove('hidden');}
+ }catch(err){mcpResultStatus.textContent='MCP LOCAL · ERREUR';mcpResultStatus.className='status indeterminate';mcpAnswer.textContent=err.message;mcpProvenance.textContent='';mcpTools.textContent='';mcpTraceSummary.textContent='';mcpJson.textContent='';mcpResult.classList.remove('hidden');}
  finally{mcpGo.textContent='Rechercher avec MCP';mcpGo.disabled=!mcpAvailable;}
 });
 loadMcpStatus();
