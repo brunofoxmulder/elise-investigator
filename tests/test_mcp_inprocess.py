@@ -39,6 +39,30 @@ class TestInProcessMCPConnection(unittest.TestCase):
         )
         self.assertEqual(connection.port, 8123)
 
+    def test_normalizes_line_break_and_tab_from_clipboard(self):
+        connection = InProcessMCPReadOnlyClient._connection_from_url(
+            "http://192.168.1.20:8123/api/webhook/\nmcp_abcde\tfghijk"
+        )
+        self.assertEqual(
+            connection.url,
+            "http://192.168.1.20:8123/api/webhook/mcp_abcdefghijk",
+        )
+
+    def test_normalizes_nbsp_and_zero_width_format_chars(self):
+        connection = InProcessMCPReadOnlyClient._connection_from_url(
+            "http://192.168.1.20:9584/private_abcd\u00a0efgh\u200bijk"
+        )
+        self.assertEqual(
+            connection.url,
+            "http://192.168.1.20:9584/private_abcdefghijk",
+        )
+
+    def test_normalization_does_not_change_secret_characters(self):
+        connection = InProcessMCPReadOnlyClient._connection_from_url(
+            " http://192.168.1.20:9584/private_aB9_-xyz "
+        )
+        self.assertTrue(connection.url.endswith("/private_aB9_-xyz"))
+
     def test_rejects_missing_url(self):
         with self.assertRaises(MCPReadOnlyError):
             InProcessMCPReadOnlyClient._connection_from_url("")
