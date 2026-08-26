@@ -9,7 +9,7 @@ import main as base
 from mcp_client import MCPReadOnlyClient, MCPReadOnlyError
 from ui import INDEX_HTML as BASE_INDEX_HTML
 
-VERSION = "0.2.0-dev.17"
+VERSION = "0.2.0-dev.20"
 
 _MCP_CARD = r'''
 <div id="mcp_console" class="card">
@@ -37,7 +37,7 @@ async function loadMcpStatus(){
  try{
   const r=await fetch(api('api/v1/mcp/status'));const d=await r.json();
   mcpAvailable=!!d.available;
-  if(mcpAvailable){const tools=Array.isArray(d.allowed_tools_available)?d.allowed_tools_available.join(', '):'';mcpStatusEl.textContent='HA-MCP connecté · lecture seule confirmée · '+(d.tool_count||0)+' outils'+(tools?' · autorisés ici : '+tools:'');}
+  if(mcpAvailable){const tools=Array.isArray(d.allowed_tools_available)?d.allowed_tools_available.join(', '):'';mcpStatusEl.textContent='HA-MCP connecté · lecture seule imposée par Investigator · '+(d.tool_count||0)+' outils'+(tools?' · autorisés ici : '+tools:'');}
   else{mcpStatusEl.textContent='HA-MCP indisponible : '+(d.error||'connexion non validée');}
  }catch(err){mcpAvailable=false;mcpStatusEl.textContent='HA-MCP indisponible : '+err.message;}
  mcpGo.disabled=!mcpAvailable;
