@@ -5,9 +5,9 @@ from aiohttp import web
 import main_mcp
 from mcp_client_compat import CompatibleMCPReadOnlyClient
 
-# Terrain patch 0.2.0-dev.17.1: keep the dev.17 console unchanged and replace
-# only HA-MCP discovery with the compatibility matcher.
-main_mcp.VERSION = "0.2.0-dev.17.1"
+# Terrain patch 0.2.0-dev.19: keep the multi-tool console unchanged and replace
+# only HA-MCP discovery with the Supervisor-name-compatible matcher.
+main_mcp.VERSION = "0.2.0-dev.19"
 main_mcp.MCPReadOnlyClient = CompatibleMCPReadOnlyClient
 
 
