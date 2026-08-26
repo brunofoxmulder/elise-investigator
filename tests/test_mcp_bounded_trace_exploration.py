@@ -76,7 +76,10 @@ class TraceProtocol:
                     "success": True,
                     "automation_id": automation_id,
                     "run_id": run_id,
-                    "timestamp": "2026-08-26T14:39:55+00:00",
+                    "timestamp": {
+                        "start": "2026-08-26T14:30:00+00:00",
+                        "finish": "2026-08-26T14:40:02+00:00",
+                    },
                     "state": "stopped",
                     "trigger": {"platform": "time_pattern", "description": "test"},
                     "condition_results": [
@@ -87,7 +90,10 @@ class TraceProtocol:
             }
 
         if automation_id == "automation.test_0":
-            timestamp = "2026-08-26T14:39:55+00:00"
+            timestamp = {
+                "start": "2026-08-26T14:30:00+00:00",
+                "finish": "2026-08-26T14:40:02+00:00",
+            }
         else:
             timestamp = "2026-08-26T13:00:00+00:00"
         return {
@@ -118,7 +124,12 @@ class TestBoundedTraceExplorer(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result["trace_tool_called"])
         self.assertEqual(result["candidates_queried"], 2)
         self.assertEqual(result["selected_run"]["automation_id"], "automation.test_0")
-        self.assertEqual(result["selected_run"]["distance_seconds"], 5.0)
+        # The observed event occurs inside the real trace start→finish interval.
+        self.assertEqual(result["selected_run"]["distance_seconds"], 0.0)
+        self.assertEqual(
+            result["selected_run"]["selection_reason"],
+            "closest_trace_interval_within_30_minutes",
+        )
         self.assertFalse(result["selection_is_causal_proof"])
         self.assertIsNone(result["causal_verdict"])
         self.assertTrue(result["investigator_status_unchanged"])
