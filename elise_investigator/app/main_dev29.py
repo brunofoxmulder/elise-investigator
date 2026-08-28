@@ -27,31 +27,57 @@ SETTINGS_FILE = DATA_DIR / "causal_settings.json"
 _CAUSAL_CARD = r'''
 <div id="causal_console" class="card">
   <p class="section-title">Journal causal · dev.29</p>
-  <p class="section-sub">Écoute locale des changements Home Assistant. Les événements sont stockés dans Investigator puis enrichis en arrière-plan, sans aucune écriture dans Home Assistant.</p>
+  <p class="section-sub"><strong>Nouveau en dev.29 :</strong> Investigator mémorise localement les changements significatifs des objets Home Assistant et enrichit leur cause en arrière-plan. Les questions « Pourquoi ? » consultent d'abord ce journal, sans écrire dans Home Assistant.</p>
+
+  <div class="small">
+    <p><strong>Ce que dev.29 change dans l'usage :</strong></p>
+    <ul style="margin-top:6px;padding-left:22px">
+      <li><strong>Question causale :</strong> le dernier événement correspondant est recherché d'abord dans le journal causal.</li>
+      <li><strong>Action automatique :</strong> la réponse privilégie la raison fonctionnelle prouvée ; le nom de l'automatisation et la trace restent des preuves internes.</li>
+      <li><strong>Action directe :</strong> la réponse indique l'utilisateur ; Alexa n'est citée que si cette provenance est réellement prouvée.</li>
+      <li><strong>Si le journal ne suffit pas :</strong> l'enquête approfondie peut être lancée en secours selon le réglage ci-dessous.</li>
+      <li><strong>Inchangé :</strong> l'investigation manuelle et la Recherche MCP locale restent disponibles séparément avec leurs garde-fous actuels.</li>
+    </ul>
+  </div>
+
+  <details>
+    <summary>Comment fonctionne le journal causal</summary>
+    <p class="small">Chaque changement utile est enregistré localement avant l'enrichissement de sa cause. Une erreur ou un délai d'enrichissement ne fait donc pas perdre l'événement : la cause peut rester <code>indeterminate</code> jusqu'à ce qu'une preuve suffisante existe.</p>
+    <p class="small">Le moteur reste déterministe et strictement en lecture seule. Le LLM ne reçoit, pour la conversation, qu'une projection minimale des faits déjà établis et ne peut pas augmenter le niveau de certitude.</p>
+  </details>
+
   <p id="causal_status" class="small">Chargement du journal…</p>
+  <p id="causal_mode" class="small"></p>
+
   <div class="grid">
     <div>
-      <label for="causal_retention">Durée du journal (heures)</label>
+      <label for="causal_retention">Conserver les événements pendant</label>
       <input id="causal_retention" type="number" min="1" max="72" step="1" value="12">
+      <p class="picker-help">De 1 à 72 heures · 12 heures par défaut.</p>
     </div>
     <div>
-      <label for="causal_fallback">Enquête approfondie de secours</label>
-      <label style="font-weight:500;margin-top:10px"><input id="causal_fallback" type="checkbox" style="width:auto;margin-right:8px">Si aucun événement n'est enregistré</label>
+      <label for="causal_fallback">Secours si le journal ne suffit pas</label>
+      <label style="font-weight:500;margin-top:10px"><input id="causal_fallback" type="checkbox" style="width:auto;margin-right:8px">Lancer l'enquête approfondie uniquement si aucun événement correspondant n'est trouvé</label>
+      <p class="picker-help">Si cette option est désactivée, Investigator répond simplement qu'aucun événement enregistré ne permet de conclure.</p>
     </div>
   </div>
-  <button id="causal_save" type="button">Enregistrer les réglages</button>
+
+  <button id="causal_save" type="button">Enregistrer les réglages du journal</button>
   <p id="causal_save_note" class="small"></p>
+  <p class="small">Ces réglages sont conservés localement dans Investigator. Ils ne modifient aucune automatisation, entité, intégration ou configuration Home Assistant.</p>
 </div>
 '''
 
 _CAUSAL_SCRIPT = r'''
-const causalStatus=document.getElementById('causal_status'),causalRetention=document.getElementById('causal_retention'),causalFallback=document.getElementById('causal_fallback'),causalSave=document.getElementById('causal_save'),causalSaveNote=document.getElementById('causal_save_note');
+const causalStatus=document.getElementById('causal_status'),causalMode=document.getElementById('causal_mode'),causalRetention=document.getElementById('causal_retention'),causalFallback=document.getElementById('causal_fallback'),causalSave=document.getElementById('causal_save'),causalSaveNote=document.getElementById('causal_save_note');
 async function loadCausalStatus(){
  try{
   const r=await fetch(api('api/v1/causal/status'));const d=await r.json();if(!r.ok)throw new Error(d.error||'Journal indisponible');
   causalRetention.value=d.settings?.retention_hours??12;causalFallback.checked=d.settings?.deep_fallback!==false;
-  const w=d.worker||{};causalStatus.textContent=(w.running?'Journal actif':'Journal arrêté')+' · '+(d.record_count||0)+' événement(s) conservé(s) · file '+(w.queue_depth||0)+'/'+(w.queue_capacity||0)+' · enrichis '+(w.records_enriched||0)+(w.enrichment_failures?' · échecs '+w.enrichment_failures:'');
- }catch(err){causalStatus.textContent='Journal causal indisponible : '+err.message;}
+  const w=d.worker||{};
+  causalStatus.textContent=(w.running?'Journal actif':'Journal arrêté')+' · '+(d.record_count||0)+' événement(s) conservé(s) · file d’enrichissement '+(w.queue_depth||0)+'/'+(w.queue_capacity||0)+' · causes enrichies '+(w.records_enriched||0)+(w.enrichment_failures?' · échecs '+w.enrichment_failures:'');
+  causalMode.textContent='Réponses conversationnelles : journal causal prioritaire · enquête approfondie '+(causalFallback.checked?'activée en secours':'désactivée')+' · Home Assistant : '+(d.read_only_home_assistant===true?'lecture seule':'état de sécurité non confirmé');
+ }catch(err){causalStatus.textContent='Journal causal indisponible : '+err.message;causalMode.textContent='';}
 }
 causalSave.addEventListener('click',async()=>{
  causalSave.disabled=true;causalSaveNote.textContent='Enregistrement…';
