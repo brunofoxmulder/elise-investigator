@@ -28,6 +28,7 @@ class InvestigationRequest:
     attribute: str | None = None
     user_declaration: str | None = None
     window_minutes: int | None = None
+    detail_mode: str = "simple"
 
 
 @dataclass(slots=True)
