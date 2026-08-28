@@ -6,8 +6,8 @@ from typing import Any
 from action_effect_cause import select_effect_linked_cause
 from branch_decision_cause import select_branch_decision_cause
 from causal_recorder import CausalRecord
-from causal_utils import walk_contains
 from human_cause import select_human_cause
+from mcp_targeted_trace_dev36 import MCPTargetedTraceReader
 from models import Evidence, InvestigationResult
 from proof_policy import executed_trace_actions
 from trigger_semantics import complete_confirmed_trace_chain, human_cause_text
@@ -73,8 +73,6 @@ def _select_logbook_entry(
         entry_context = str(entry.get("context_id") or "")
         context_penalty = 0 if context_id and entry_context == context_id else 1
         value_penalty = 0
-        # Logbook state is useful for a primary state transition. Attribute-only
-        # changes can share the same state and are selected primarily by context/time.
         if record.attribute is None and entry.get("state") is not None:
             value_penalty = 0 if _same_value(entry.get("state"), record.after_value) else 1
         candidates.append((context_penalty + value_penalty, distance, entry))
@@ -132,12 +130,12 @@ def _compact_human_cause(value: dict[str, Any] | None) -> dict[str, Any] | None:
 
 
 class TargetedMemoryEnricher:
-    """Enrich one already-captured memory episode with bounded HA reads.
+    """Enrich one already-captured memory episode with bounded read-only reads.
 
-    This is deliberately not the historical reverse investigator. The caller
-    supplies one entity episode. We read only that entity's tiny Logbook window;
-    if Home Assistant names one automation/script in the context, we inspect only
-    that source's nearest trace and require a runtime command targeting the entity.
+    One tiny Logbook window identifies the context. If it names one automation or
+    script, only that source's nearest trace may be read. A trace is accepted only
+    when its runtime actions target the memorized entity. No broad reverse search
+    is performed and no question ever starts this enrichment.
     """
 
     def __init__(self, ha, trace_investigator):
@@ -145,6 +143,12 @@ class TargetedMemoryEnricher:
         self.trace_investigator = trace_investigator
         self.logbook_reads = 0
         self.trace_reads = 0
+        self.direct_trace_failures = 0
+        self.mcp_trace_reader: MCPTargetedTraceReader | None = None
+        self.last_trace_backend: str | None = None
+
+    def set_mcp_client(self, mcp_client) -> None:
+        self.mcp_trace_reader = MCPTargetedTraceReader(mcp_client) if mcp_client else None
 
     async def _label_cause(self, cause: dict[str, Any] | None) -> None:
         if not isinstance(cause, dict):
@@ -167,27 +171,17 @@ class TargetedMemoryEnricher:
         if attrs.get("unit_of_measurement"):
             cause["unit"] = str(attrs["unit_of_measurement"])
 
-    async def _trace_reason(
+    async def _reason_from_detail(
         self,
         record: CausalRecord,
         source_entity_id: str,
         source_name: str | None,
         source_kind: str,
+        detail: dict[str, Any],
+        run_id: str | None,
     ) -> tuple[str | None, str | None, dict[str, Any] | None]:
-        bundle = await self.trace_investigator._best_trace_for_source(
-            source_entity_id, record.normalized_time()
-        )
-        self.trace_reads += 1
-        if not isinstance(bundle, dict):
-            return None, None, None
-        detail = bundle.get("detail")
-        if not isinstance(detail, dict):
-            return None, _trace_run_id(bundle), None
-
-        # A nearby trace is not enough. It must contain an executed runtime
-        # command that actually targets the entity whose effect we memorized.
         if not executed_trace_actions(detail, record.entity_id):
-            return None, _trace_run_id(bundle), None
+            return None, run_id, None
 
         result = InvestigationResult(
             status="confirmed",
@@ -224,16 +218,65 @@ class TargetedMemoryEnricher:
         )
         await self._label_cause(human_cause)
         text = human_cause_text(human_cause) if human_cause else None
-        # time_pattern and other purely technical triggers intentionally remain
-        # without a user-facing reason unless the trace exposes a local decision.
-        return text, _trace_run_id(bundle), _compact_human_cause(human_cause)
+        return text, run_id, _compact_human_cause(human_cause)
+
+    async def _trace_reason(
+        self,
+        record: CausalRecord,
+        source_entity_id: str,
+        source_name: str | None,
+        source_kind: str,
+    ) -> tuple[str | None, str | None, dict[str, Any] | None]:
+        # Prefer the existing direct HA reader because it is one local hop. If
+        # Home Assistant refuses the admin-only trace command for the App token,
+        # fall back to the already-validated in-process HA-MCP read-only tool.
+        bundle: dict[str, Any] | None = None
+        try:
+            bundle = await self.trace_investigator._best_trace_for_source(
+                source_entity_id, record.normalized_time()
+            )
+            self.trace_reads += 1
+        except Exception:
+            self.direct_trace_failures += 1
+
+        if isinstance(bundle, dict):
+            detail = bundle.get("detail")
+            if isinstance(detail, dict):
+                self.last_trace_backend = "direct_ha"
+                result = await self._reason_from_detail(
+                    record,
+                    source_entity_id,
+                    source_name,
+                    source_kind,
+                    detail,
+                    _trace_run_id(bundle),
+                )
+                # A trace that exists but does not target the entity is not proof;
+                # trying the same source through MCP cannot make it proof.
+                if result[2] is not None or result[0] is not None:
+                    return result
+
+        reader = self.mcp_trace_reader
+        if reader is not None:
+            detail = await reader.nearest_detail(
+                source_entity_id, record.normalized_time(), record.entity_id
+            )
+            if isinstance(detail, dict):
+                self.last_trace_backend = "ha_mcp"
+                return await self._reason_from_detail(
+                    record,
+                    source_entity_id,
+                    source_name,
+                    source_kind,
+                    detail,
+                    str(detail.get("run_id")) if detail.get("run_id") else None,
+                )
+        return None, _trace_run_id(bundle) if isinstance(bundle, dict) else None, None
 
     async def enrich(self, records: list[CausalRecord]) -> bool:
         records = [record for record in records if record.record_id is not None]
         if not records:
             return False
-        # Prefer the most recent primary state transition as the causal anchor;
-        # otherwise use the latest attribute change from the same episode.
         primaries = [record for record in records if record.attribute is None]
         anchor = max(primaries or records, key=lambda item: item.normalized_time())
         event_time = anchor.normalized_time()
@@ -273,8 +316,6 @@ class TargetedMemoryEnricher:
                 anchor, source_entity_id, source_name, "script"
             )
         elif context_event_type == "call_service":
-            # This proves the service context, not who initiated it. Keep it as
-            # internal evidence and do not invent a user/voice/integration source.
             reason_code = "logbook_call_service_context"
 
         proof = {
@@ -295,12 +336,14 @@ class TargetedMemoryEnricher:
                 if entry.get(key) is not None
             },
         }
+        if self.last_trace_backend:
+            proof["trace_backend"] = self.last_trace_backend
         if human_cause:
             proof["human_cause"] = human_cause
 
         changed = False
         for original in records:
-            current = self.ha_recorder.get(original.record_id) if hasattr(self, "ha_recorder") else original
+            current = self.recorder.get(original.record_id) if original.record_id is not None else None
             if current is None:
                 continue
             current.origin_type = origin_type
@@ -317,6 +360,4 @@ class TargetedMemoryEnricher:
 
     def bind_recorder(self, recorder) -> "TargetedMemoryEnricher":
         self.recorder = recorder
-        # Alias used only to reload rows by id before updating after a debounce.
-        self.ha_recorder = recorder
         return self
