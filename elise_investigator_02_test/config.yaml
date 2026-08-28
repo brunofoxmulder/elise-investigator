@@ -1,26 +1,31 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.35"
+version: "0.2.0-dev.36"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev34-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev36-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.35 conserve la mémoire consciente de dev.34 mais l'isole de l'ancien
-# journal causal dev.29-dev.33. La nouvelle mémoire utilise son propre fichier
-# /data/conscious_memory.sqlite3 ; l'ancien /data/causal_journal.sqlite3 reste intact
-# pour rollback et n'est plus consulté par le chemin conversationnel normal.
+# Dev.36 conserve la mémoire consciente isolée dans /data/conscious_memory.sqlite3.
+# Chaque changement utile est mémorisé immédiatement puis enrichi de façon ciblée :
+# une petite fenêtre Logbook sur cette entité et cet instant, puis au maximum une
+# source automation/script et une trace réellement exécutée ciblant cette entité.
+# Il n'y a ni recherche inverse globale, ni file FIFO bornée, ni drop d'enrichissement.
+# Si l'API trace directe de Home Assistant refuse le token de l'App, Investigator
+# peut utiliser le canal HA-MCP in-process déjà configuré, uniquement pour la source
+# désignée par le Logbook et toujours en lecture seule.
 # La mémoire est de 12 h par défaut, réglable de 1 à 72 h dans l'IHM.
-# /api/v1/investigate reste la porte stable connue d'Élise Why dev.18 et renvoie
-# status=confirmed pour compatibilité ; aucun niveau de certitude n'est calculé.
-# Si aucune cause n'est disponible, la réponse est « Je n'ai pas trouvé la cause. »
+# /api/v1/investigate reste la porte stable connue d'Élise Why dev.18 et consulte
+# uniquement la mémoire locale au moment de la question.
+# status=confirmed reste une compatibilité technique ; aucun niveau de certitude
+# n'est calculé en dev.36. Sans cause disponible : « Je n'ai pas trouvé la cause. »
 # Le journal diagnostic entrée/sortie reste séparé du raisonnement.
-# L'enquête approfondie reste séparée via /api/v1/investigate/deep.
-# L'app reste strictement en lecture seule vis-à-vis de Home Assistant.
+# L'enquête approfondie manuelle reste séparée via /api/v1/investigate/deep.
+# L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
