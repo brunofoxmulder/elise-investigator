@@ -9,18 +9,18 @@ if str(APP) not in sys.path:
 
 
 class TestDev29Architecture(unittest.TestCase):
-    def test_candidate_launcher_uses_dev29_wrapper(self):
+    def test_candidate_launcher_uses_current_wrapper(self):
         run_sh = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertIn("main_dev29.py", run_sh)
+        self.assertIn("main_dev30.py", run_sh)
         self.assertNotIn("main_mcp_inprocess.py", run_sh)
 
-    def test_manual_investigate_endpoint_is_not_replaced(self):
+    def test_manual_investigate_endpoint_is_not_replaced_in_dev29_base(self):
         source = (APP / "main_dev29.py").read_text(encoding="utf-8")
         self.assertIn("base.ask = recorder_first_ask", source)
         self.assertNotIn("base.investigate =", source)
         self.assertIn("manual /investigate endpoint remains untouched", source)
 
-    def test_journal_uses_separate_dev16_engine_without_replacing_manual_engine(self):
+    def test_journal_uses_separate_dev16_engine_without_replacing_manual_engine_in_dev29(self):
         source = (APP / "main_dev29.py").read_text(encoding="utf-8")
         self.assertIn("V02Investigator", source)
         self.assertIn('app["causal_investigator"]', source)
@@ -57,6 +57,7 @@ class TestDev29Architecture(unittest.TestCase):
             "causal_worker.py",
             "ha_event_stream.py",
             "main_dev29.py",
+            "main_dev30.py",
             "runtime_decision.py",
             "v02_investigator.py",
         )
