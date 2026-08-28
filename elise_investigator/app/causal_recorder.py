@@ -61,6 +61,7 @@ class CausalRecord:
             "entity": self.entity_name or self.entity_id,
             "event": self.event_kind,
             "time": self.event_time,
+            "confidence": self.confidence,
         }
         if self.after_value is not None:
             payload["value"] = self.after_value
@@ -204,6 +205,56 @@ class CausalRecorder:
         self.prune(now=created)
         return item
 
+    def update(self, item: CausalRecord) -> CausalRecord:
+        """Replace the causal projection of an already captured event.
+
+        The event identity/time/effect may be normalized again, but the row id is
+        preserved. This is used when the stream stores an event immediately and a
+        bounded background investigation later enriches its proof.
+        """
+        if item.record_id is None:
+            raise ValueError("record_id est obligatoire pour mettre à jour un événement")
+        item.event_time = self._utc_iso(item.normalized_time())
+        cursor = self._db.execute(
+            """
+            UPDATE causal_events SET
+                entity_id = ?, entity_name = ?, event_time = ?, event_kind = ?,
+                before_json = ?, after_json = ?, attribute = ?, origin_type = ?,
+                source_entity_id = ?, source_name = ?, reason = ?, reason_code = ?,
+                trigger_json = ?, factors_json = ?, confidence = ?,
+                trace_run_id = ?, trace_path = ?
+            WHERE id = ?
+            """,
+            (
+                item.entity_id,
+                item.entity_name,
+                item.event_time,
+                item.event_kind,
+                self._dump(item.before_value),
+                self._dump(item.after_value),
+                item.attribute,
+                item.origin_type,
+                item.source_entity_id,
+                item.source_name,
+                item.reason,
+                item.reason_code,
+                self._dump(item.trigger),
+                self._dump(item.factors),
+                item.confidence,
+                item.trace_run_id,
+                item.trace_path,
+                int(item.record_id),
+            ),
+        )
+        self._db.commit()
+        if cursor.rowcount != 1:
+            raise KeyError(f"Événement causal introuvable: {item.record_id}")
+        return item
+
+    def get(self, record_id: int) -> CausalRecord | None:
+        row = self._db.execute("SELECT * FROM causal_events WHERE id = ?", (int(record_id),)).fetchone()
+        return self._row_to_record(row) if row else None
+
     def latest(self, entity_id: str, *, attribute: str | None = None) -> CausalRecord | None:
         sql = "SELECT * FROM causal_events WHERE entity_id = ?"
         params: list[Any] = [entity_id]
@@ -213,6 +264,59 @@ class CausalRecorder:
         sql += " ORDER BY event_time DESC, id DESC LIMIT 1"
         row = self._db.execute(sql, params).fetchone()
         return self._row_to_record(row) if row else None
+
+    def for_entity(self, entity_id: str, *, limit: int = 50) -> list[CausalRecord]:
+        bounded = max(1, min(int(limit), 500))
+        rows = self._db.execute(
+            "SELECT * FROM causal_events WHERE entity_id = ? ORDER BY event_time DESC, id DESC LIMIT ?",
+            (entity_id, bounded),
+        ).fetchall()
+        return [self._row_to_record(row) for row in rows]
+
+    @staticmethod
+    def _same_value(actual: Any, expected: Any) -> bool:
+        if expected is None:
+            return True
+        if actual is None:
+            return False
+        if str(actual) == str(expected):
+            return True
+        try:
+            return abs(float(actual) - float(expected)) < 1e-9
+        except (TypeError, ValueError):
+            return False
+
+    def find_best(
+        self,
+        entity_id: str,
+        *,
+        observed_time: str | None = None,
+        observed_value: Any = None,
+        attribute: str | None = None,
+        limit: int = 100,
+    ) -> CausalRecord | None:
+        """Resolve a recorded event using explicit user clues, else return latest.
+
+        When a time is supplied, the nearest matching value/attribute wins. Without
+        time, the latest matching value wins. A value clue is never silently ignored.
+        """
+        candidates = self.for_entity(entity_id, limit=limit)
+        if attribute is not None:
+            candidates = [item for item in candidates if item.attribute == attribute]
+        if observed_value is not None:
+            candidates = [item for item in candidates if self._same_value(item.after_value, observed_value)]
+        if not candidates:
+            return None
+        if not observed_time:
+            return candidates[0]
+        try:
+            wanted = datetime.fromisoformat(str(observed_time).replace("Z", "+00:00"))
+            if wanted.tzinfo is None:
+                wanted = wanted.replace(tzinfo=timezone.utc)
+            wanted = wanted.astimezone(timezone.utc)
+        except ValueError:
+            return candidates[0]
+        return min(candidates, key=lambda item: abs((item.normalized_time() - wanted).total_seconds()))
 
     def recent(self, *, limit: int = 100) -> list[CausalRecord]:
         bounded = max(1, min(int(limit), 1000))
