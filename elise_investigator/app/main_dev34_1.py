@@ -7,7 +7,7 @@ from aiohttp import web
 import main_dev29 as dev29
 import main_dev34 as dev34
 
-VERSION = "0.2.0-dev.34.1"
+VERSION = "0.2.0-dev.35"
 CONSCIOUS_MEMORY_FILE = Path("/data") / "conscious_memory.sqlite3"
 
 
