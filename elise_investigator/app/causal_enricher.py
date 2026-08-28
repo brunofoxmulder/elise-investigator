@@ -9,6 +9,7 @@ from causal_recorder import CausalRecord
 from condition_context import extract_passed_conditions
 from human_cause import select_human_cause
 from models import InvestigationRequest, InvestigationResult
+from runtime_decision import extract_runtime_decision
 from trigger_semantics import complete_confirmed_trace_chain, human_cause_text
 
 
@@ -133,6 +134,13 @@ def _proven_trigger(result: InvestigationResult) -> dict[str, Any] | None:
     return None
 
 
+def _technical_trigger_platform(human_cause: dict[str, Any] | None) -> str:
+    detail = human_cause.get("detail") if isinstance(human_cause, dict) else None
+    if not isinstance(detail, dict):
+        return ""
+    return str(detail.get("platform") or detail.get("trigger") or "").lower()
+
+
 class CausalEnricher:
     """Project a full deterministic investigation into one compact journal row."""
 
@@ -220,5 +228,19 @@ class CausalEnricher:
             decisive = _compact_trigger(human_cause.get("detail"))
             if decisive:
                 factors.insert(0, {"role": "decisive", **decisive})
+
+        # A periodic/time trigger often says only when the automation evaluated,
+        # not why it selected the resulting value. For rendered numeric targets,
+        # derive the bounded runtime dependency set instead of presenting the timer
+        # as the functional reason.
+        decision = extract_runtime_decision(result)
+        platform = _technical_trigger_platform(human_cause)
+        if decision is not None:
+            factors = [*decision.factors, *factors]
+            if decision.reason and (not record.reason or platform in {"time", "time_pattern"}):
+                record.reason = decision.reason
+                record.reason_code = "runtime_variable_dependencies"
+                record.trace_path = decision.command_path
+
         record.factors = factors or None
         return record
