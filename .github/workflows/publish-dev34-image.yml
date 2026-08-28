@@ -1,9 +1,9 @@
-name: Publish dev.34 private image
+name: Publish dev.35 private image
 
 on:
   push:
     branches:
-      - dev34-conscious-memory
+      - dev34-memory-isolation
     paths:
       - '.github/workflows/publish-dev34-image.yml'
       - 'elise_investigator/**'
@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   build-publish:
-    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/dev34-conscious-memory'
+    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/dev34-memory-isolation'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout dev.34
+      - name: Checkout dev.35
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -38,10 +38,10 @@ jobs:
           file: ./elise_investigator/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/brunofoxmulder/elise-investigator-dev34-private:0.2.0-dev.34
+          tags: ghcr.io/brunofoxmulder/elise-investigator-dev34-private:0.2.0-dev.35
           build-args: |
-            BUILD_VERSION=0.2.0-dev.34
+            BUILD_VERSION=0.2.0-dev.35
             BUILD_ARCH=amd64
 
       - name: Verify published image manifest
-        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev34-private:0.2.0-dev.34
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev34-private:0.2.0-dev.35
