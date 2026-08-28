@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0-dev.30
+
+- Corrige l’aiguillage découvert en recette dev.29 : **Assist / Élise Why ne passent plus directement par la grosse recherche historique**. Un nouvel endpoint structuré `POST /api/v1/why` consulte d’abord le journal causal.
+- Si aucun événement correspondant n’est présent dans le journal, l’**enquête approfondie de secours** n’est lancée que si l’option correspondante est activée dans l’IHM.
+- Corrige la sélection des événements récents : un vrai changement tel que **`off → on`** ou **`on → off`** est désormais prioritaire sur les mises à jour techniques ultérieures **`on → on`** ou **`off → off`** provoquées par des changements d’attributs.
+- La **recherche manuelle** reste une enquête approfondie séparée et conserve les preuves structurées complètes ; sa réponse visible utilise désormais la raison fonctionnelle lorsqu’elle est prouvée, sans présenter le nom de l’automatisation comme cause principale.
+- Le badge de verdict de la recherche manuelle est francisé : **Cause confirmée / probable / indéterminée**.
+- La réponse destinée au LLM reste volontairement minimale : verdict, entité, événement/heure utiles, valeur éventuelle, raison fonctionnelle ou source directe prouvée. Les noms d’automatisations, traces et variables techniques restent internes à Investigator.
+- Cette version est prévue pour fonctionner avec **Élise Why 0.2.0-dev.19**, qui aiguille l’outil Assist `InvestigateWhy` vers `/api/v1/why`.
+- Aucun service mutateur ni droit Home Assistant supplémentaire n’est ajouté ; Investigator reste strictement **lecture seule**.
+- Image privée `0.2.0-dev.30` construite et vérifiée avant promotion de l’app de test.
+
 ## 0.2.0-dev.29
 
 - Ajout d’un **journal causal persistant local** sous SQLite : les changements significatifs d’entités Home Assistant sont enregistrés avant enrichissement causal, puis conservés pendant une durée glissante réglable.
