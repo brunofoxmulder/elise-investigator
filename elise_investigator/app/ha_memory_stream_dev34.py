@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 from collections.abc import AsyncIterator
 from typing import Any
@@ -9,6 +10,8 @@ from typing import Any
 import aiohttp
 
 from ha_client import HomeAssistantError
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class HAMemoryEventStream:
@@ -29,6 +32,7 @@ class HAMemoryEventStream:
     def __init__(self, session: aiohttp.ClientSession):
         self._session = session
         self._token = os.environ.get("SUPERVISOR_TOKEN", "")
+        self.subscribed_event_types: tuple[str, ...] = ()
         if not self._token:
             raise HomeAssistantError("SUPERVISOR_TOKEN absent")
 
@@ -44,6 +48,7 @@ class HAMemoryEventStream:
                 if auth.get("type") != "auth_ok":
                     raise HomeAssistantError("Authentification WS refusée")
 
+                active: dict[int, str] = {}
                 for subscription_id, event_type in self.EVENT_TYPES.items():
                     await ws.send_json(
                         {
@@ -53,16 +58,31 @@ class HAMemoryEventStream:
                         }
                     )
                     ack = await ws.receive_json(timeout=10)
-                    if (
-                        ack.get("id") != subscription_id
-                        or ack.get("type") != "result"
-                        or ack.get("success") is not True
-                    ):
-                        error = ack.get("error") if isinstance(ack, dict) else None
+                    accepted = (
+                        ack.get("id") == subscription_id
+                        and ack.get("type") == "result"
+                        and ack.get("success") is True
+                    )
+                    if accepted:
+                        active[subscription_id] = event_type
+                        continue
+
+                    error = ack.get("error") if isinstance(ack, dict) else None
+                    if event_type == "state_changed":
                         raise HomeAssistantError(
-                            f"Abonnement {event_type} refusé"
+                            "Abonnement state_changed refusé"
                             + (f": {error}" if error else "")
                         )
+                    # Some HA authentication profiles may refuse internal events.
+                    # Keep the factual state memory alive and expose the limitation
+                    # through logs instead of restarting the whole stream forever.
+                    _LOGGER.warning(
+                        "Optional memory event subscription refused: %s%s",
+                        event_type,
+                        f" ({error})" if error else "",
+                    )
+
+                self.subscribed_event_types = tuple(active.values())
 
                 async for message in ws:
                     if message.type == aiohttp.WSMsgType.TEXT:
@@ -87,7 +107,7 @@ class HAMemoryEventStream:
                     if not isinstance(payload, dict) or payload.get("type") != "event":
                         continue
                     subscription_id = payload.get("id")
-                    expected = self.EVENT_TYPES.get(subscription_id)
+                    expected = active.get(subscription_id)
                     event = payload.get("event")
                     if not expected or not isinstance(event, dict):
                         continue
