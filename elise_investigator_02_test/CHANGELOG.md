@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0-dev.31
+
+- **Élise Why reste inchangée** : elle conserve sa porte historique `POST /api/v1/investigate`. Aucun changement HACS ni redémarrage Home Assistant n'est requis pour ce jalon.
+- `POST /api/v1/investigate` devient la **porte stable et rapide d'Assist** : elle consulte uniquement le journal causal local déjà enrichi.
+- Si le journal ne contient pas de preuve correspondante, Investigator renvoie immédiatement **`indeterminate`** ; aucune enquête approfondie synchrone n'est lancée dans le dialogue Assist.
+- L'objectif est de ne pas ajouter de latence perceptible : le travail causal coûteux est effectué en arrière-plan par l'enregistreur/enrichisseur avant la question utilisateur.
+- L'enquête approfondie déterministe reste disponible séparément pour l'IHM manuelle via `POST /api/v1/investigate/deep`.
+- `POST /api/v1/why` est conservé comme alias de compatibilité du chemin rapide, mais Élise Why dev.18 n'en dépend pas.
+- La projection conversationnelle reste minimale et n'expose ni nom d'automatisation, ni trace, ni détail d'implémentation ; pour une action automatisée, seule la raison fonctionnelle prouvée est présentée.
+- L'IHM indique explicitement **Assist : journal causal uniquement · enquête approfondie : manuelle** ; l'ancien réglage de fallback est conservé comme réglage hérité sans effet sur Assist en dev.31.
+- La sélection du dernier vrai changement d'état introduite en dev.30 est conservée pour les investigations profondes manuelles et l'enrichissement causal.
+- Invariants inchangés : moteur local, déterministe, strictement **lecture seule**, aucun LLM dans Investigator, aucun service Home Assistant mutateur.
+- Candidate exacte : commit `126158992cd67d1cac813ac173bb3d930d4e8beb`, image privée `0.2.0-dev.31`, digest `sha256:f923c1a66f31fc2d7544a82be7ca34e2b8cfb3b467934a5ff467b00ac3498279`.
+
 ## 0.2.0-dev.30
 
 - Corrige l’aiguillage découvert en recette dev.29 : **Assist / Élise Why ne passent plus directement par la grosse recherche historique**. Un nouvel endpoint structuré `POST /api/v1/why` consulte d’abord le journal causal.
@@ -8,7 +22,7 @@
 - La **recherche manuelle** reste une enquête approfondie séparée et conserve les preuves structurées complètes ; sa réponse visible utilise désormais la raison fonctionnelle lorsqu’elle est prouvée, sans présenter le nom de l’automatisation comme cause principale.
 - Le badge de verdict de la recherche manuelle est francisé : **Cause confirmée / probable / indéterminée**.
 - La réponse destinée au LLM reste volontairement minimale : verdict, entité, événement/heure utiles, valeur éventuelle, raison fonctionnelle ou source directe prouvée. Les noms d’automatisations, traces et variables techniques restent internes à Investigator.
-- Cette version est prévue pour fonctionner avec **Élise Why 0.2.0-dev.19**, qui aiguille l’outil Assist `InvestigateWhy` vers `/api/v1/why`.
+- Cette version était prévue pour fonctionner avec **Élise Why 0.2.0-dev.19** via `/api/v1/why` ; cette orientation a ensuite été abandonnée au profit de la porte stable `/api/v1/investigate` en dev.31, afin de figer Élise Why.
 - Aucun service mutateur ni droit Home Assistant supplémentaire n’est ajouté ; Investigator reste strictement **lecture seule**.
 - Image privée `0.2.0-dev.30` construite et vérifiée avant promotion de l’app de test.
 
