@@ -26,6 +26,27 @@ def _technical_reason(value: str | None) -> bool:
     return text.startswith(_TECHNICAL_REASON_PREFIXES) or "binary_sensor." in text
 
 
+def _polish_reason(value: str | None, cause: dict[str, Any] | None) -> str | None:
+    """Keep the generic semantic engine, with one lexical Home Assistant nuance.
+
+    A terrace opening is commonly exposed with a generic door/window device class.
+    When the proven trigger entity itself is explicitly named ``porte_fenetre``, keep
+    that useful business label instead of shortening it to just ``fenêtre``.
+    """
+    if not value or not isinstance(cause, dict):
+        return value
+    detail = cause.get("detail")
+    entity_id = str(detail.get("entity_id") or "") if isinstance(detail, dict) else ""
+    normalized = entity_id.casefold().replace("-", "_")
+    if "porte_fenetre" not in normalized:
+        return value
+    if value == "la fenêtre a été refermée":
+        return "la porte-fenêtre a été refermée"
+    if value == "la fenêtre a été ouverte":
+        return "la porte-fenêtre a été ouverte"
+    return value
+
+
 class TargetedMemoryEnricher(Dev36TargetedMemoryEnricher):
     """Dev.37: polish an already valid conscious-memory row.
 
@@ -41,8 +62,6 @@ class TargetedMemoryEnricher(Dev36TargetedMemoryEnricher):
         expected_motion = {"closed": "closing", "open": "opening"}.get(terminal)
         if expected_motion is None:
             return None
-        # The terminal transition itself must prove that this is the end of the
-        # expected movement. This prevents inheritance across unrelated episodes.
         if str(anchor.before_value or "").lower() != expected_motion:
             return None
 
@@ -130,14 +149,13 @@ class TargetedMemoryEnricher(Dev36TargetedMemoryEnricher):
         trace_run_id: str | None = None
         human_cause: dict[str, Any] | None = None
 
-        # Direct user proof always wins and needs no trace.
         if entry and entry.get("context_user_id"):
             origin_type = "user"
             reason_code = "logbook_user_context"
         else:
             context_event_type = str(entry.get("context_event_type") or "") if entry else ""
             logbook_source = str(entry.get("context_entity_id") or "") if entry else ""
-            logbook_name = str(entry.get("context_entity_id_name") or "") or None if entry else None
+            logbook_name = (str(entry.get("context_entity_id_name") or "") or None) if entry else None
 
             if context_event_type == "automation_triggered" and logbook_source.startswith("automation."):
                 origin_type = "automation"
@@ -167,13 +185,13 @@ class TargetedMemoryEnricher(Dev36TargetedMemoryEnricher):
                 reason, trace_run_id, human_cause = await self._trace_reason(
                     anchor, source_entity_id, source_name, origin_type
                 )
+                reason = _polish_reason(reason, human_cause)
                 if reason:
                     reason_code = f"{reason_code or 'captured_context'}+targeted_trace"
                 elif captured_reason and not _technical_reason(captured_reason):
                     reason = captured_reason
-                # A raw HA source such as "state of binary_sensor..." remains
-                # internal proof; exposing it as the user-facing reason is worse
-                # than the explicit no-cause fallback.
+                # Raw HA source text such as "state of binary_sensor..." remains
+                # internal proof; it is never exposed as the final cause.
 
         proof = dict(anchor.trigger) if isinstance(anchor.trigger, dict) else {}
         proof["effect_context_id"] = _effect_context(anchor)
@@ -198,8 +216,6 @@ class TargetedMemoryEnricher(Dev36TargetedMemoryEnricher):
         if human_cause:
             proof["human_cause"] = human_cause
 
-        # If neither Logbook nor the already-captured event context contributes
-        # anything, keep the durable raw memory row unchanged.
         if origin_type == "unknown" and entry is None:
             return False
 
