@@ -10,7 +10,7 @@ if str(APP) not in sys.path:
 
 from causal_recorder import CausalRecord
 from causal_settings import CausalSettings
-from main_dev29 import recorder_first_ask
+from main_dev29 import _CAUSAL_CARD, _CAUSAL_SCRIPT, recorder_first_ask
 from models import InvestigationRequest, InvestigationResult
 
 
@@ -63,6 +63,22 @@ def resolved():
             "time_zone": "Europe/Paris",
         },
     )
+
+
+class TestMainDev29UI(unittest.TestCase):
+    def test_ui_explains_dev29_user_contract(self):
+        self.assertIn("Nouveau en dev.29", _CAUSAL_CARD)
+        self.assertIn("raison fonctionnelle prouvée", _CAUSAL_CARD)
+        self.assertIn("Alexa n'est citée que si cette provenance est réellement prouvée", _CAUSAL_CARD)
+        self.assertIn("l'investigation manuelle et la Recherche MCP locale restent disponibles séparément", _CAUSAL_CARD)
+        self.assertIn("Lancer l'enquête approfondie uniquement si aucun événement correspondant n'est trouvé", _CAUSAL_CARD)
+        self.assertIn("ne modifient aucune automatisation, entité, intégration ou configuration Home Assistant", _CAUSAL_CARD)
+
+    def test_ui_status_exposes_journal_first_and_read_only_mode(self):
+        self.assertIn("Réponses conversationnelles : journal causal prioritaire", _CAUSAL_SCRIPT)
+        self.assertIn("Home Assistant : ", _CAUSAL_SCRIPT)
+        self.assertIn("lecture seule", _CAUSAL_SCRIPT)
+        self.assertIn("file d’enrichissement", _CAUSAL_SCRIPT)
 
 
 class TestMainDev29(unittest.IsolatedAsyncioTestCase):
