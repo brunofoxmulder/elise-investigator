@@ -115,6 +115,7 @@ class TestCausalRecorder(unittest.TestCase):
                 "entity": "Volet salon",
                 "event": "positioned",
                 "time": "2026-08-28T09:12:00+00:00",
+                "confidence": "confirmed",
                 "value": 40,
                 "attribute": "current_position",
                 "reason": "position du soleil et luminosité",
@@ -148,6 +149,53 @@ class TestCausalRecorder(unittest.TestCase):
             confidence="confirmed",
         )
         self.assertEqual(user.llm_payload()["source"], "utilisateur")
+
+    def test_enrichment_updates_same_row(self):
+        now = datetime.now(timezone.utc)
+        with CausalRecorder(self.path, retention_hours=12) as recorder:
+            item = recorder.record(
+                CausalRecord(
+                    entity_id="light.entree",
+                    event_time=now.isoformat(),
+                    event_kind="turned_off",
+                    after_value="off",
+                ),
+                now=now,
+            )
+            original_id = item.record_id
+            item.origin_type = "automation"
+            item.reason = "il n'y avait plus de mouvement"
+            item.confidence = "confirmed"
+            recorder.update(item)
+            self.assertEqual(recorder.count(), 1)
+            stored = recorder.get(original_id)
+            self.assertEqual(stored.record_id, original_id)
+            self.assertEqual(stored.reason, "il n'y avait plus de mouvement")
+            self.assertEqual(stored.confidence, "confirmed")
+
+    def test_find_best_uses_time_and_value_without_ignoring_clue(self):
+        now = datetime.now(timezone.utc)
+        with CausalRecorder(self.path, retention_hours=12) as recorder:
+            for minutes, value in ((10, "on"), (5, "off"), (1, "on")):
+                recorder.record(
+                    CausalRecord(
+                        entity_id="light.entree",
+                        event_time=(now - timedelta(minutes=minutes)).isoformat(),
+                        event_kind="turned_on" if value == "on" else "turned_off",
+                        after_value=value,
+                    ),
+                    now=now,
+                )
+            latest_off = recorder.find_best("light.entree", observed_value="off")
+            self.assertEqual(latest_off.after_value, "off")
+            timed_on = recorder.find_best(
+                "light.entree",
+                observed_time=(now - timedelta(minutes=9)).isoformat(),
+                observed_value="on",
+            )
+            self.assertEqual(timed_on.after_value, "on")
+            self.assertLess(abs((timed_on.normalized_time() - (now - timedelta(minutes=10))).total_seconds()), 1)
+            self.assertIsNone(recorder.find_best("light.entree", observed_value="unseen"))
 
     def test_retention_bounds_are_enforced(self):
         with self.assertRaises(ValueError):
