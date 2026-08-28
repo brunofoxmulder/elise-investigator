@@ -56,7 +56,7 @@ _CAUSAL_CARD = r'''
       <p class="picker-help">De 1 à 72 heures · 12 heures par défaut.</p>
     </div>
     <div>
-      <label for="causal_fallback">Secours si le journal ne suffit pas</label>
+      <label for="causal_fallback">Enquête approfondie de secours</label>
       <label style="font-weight:500;margin-top:10px"><input id="causal_fallback" type="checkbox" style="width:auto;margin-right:8px">Lancer l'enquête approfondie uniquement si aucun événement correspondant n'est trouvé</label>
       <p class="picker-help">Si cette option est désactivée, Investigator répond simplement qu'aucun événement enregistré ne permet de conclure.</p>
     </div>
