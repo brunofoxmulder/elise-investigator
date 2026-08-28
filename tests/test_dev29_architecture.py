@@ -20,6 +20,13 @@ class TestDev29Architecture(unittest.TestCase):
         self.assertNotIn("base.investigate =", source)
         self.assertIn("manual /investigate endpoint remains untouched", source)
 
+    def test_journal_uses_separate_dev16_engine_without_replacing_manual_engine(self):
+        source = (APP / "main_dev29.py").read_text(encoding="utf-8")
+        self.assertIn("V02Investigator", source)
+        self.assertIn('app["causal_investigator"]', source)
+        self.assertIn('app["investigator"]', source)
+        self.assertNotIn('app["investigator"] = causal_investigator', source)
+
     def test_settings_ui_contains_both_validated_controls(self):
         source = (APP / "main_dev29.py").read_text(encoding="utf-8")
         self.assertIn("causal_retention", source)
@@ -51,12 +58,19 @@ class TestDev29Architecture(unittest.TestCase):
             "ha_event_stream.py",
             "main_dev29.py",
             "runtime_decision.py",
+            "v02_investigator.py",
         )
         combined = "\n".join((APP / name).read_text(encoding="utf-8") for name in names)
         self.assertNotIn("supervisor/core/api/services", combined)
         self.assertNotIn("session.post", combined)
         self.assertNotIn("session.put", combined)
         self.assertNotIn("session.delete", combined)
+
+    def test_candidate_build_does_not_promote_test_manifest(self):
+        workflow = (ROOT / ".github" / "workflows" / "publish-dev29-image.yml").read_text(encoding="utf-8")
+        self.assertIn("elise-investigator-dev29-private:0.2.0-dev.29", workflow)
+        self.assertNotIn("elise_investigator_02_test/config.yaml", workflow)
+        self.assertNotIn("dist-dev29", workflow)
 
 
 if __name__ == "__main__":
