@@ -1,18 +1,19 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.29"
+version: "0.2.0-dev.30"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev29-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev30-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.29 conserve l'investigation manuelle dev.28 et la Recherche MCP locale.
-# Elle ajoute un journal causal persistant local, consulté en priorité par la
-# voie conversationnelle, avec enquête approfondie de secours optionnelle.
+# Dev.30 conserve le journal causal persistant de dev.29 et l'investigation
+# manuelle approfondie. Elle ajoute l'endpoint /api/v1/why destiné à Élise Why /
+# Assist, journal-first avec secours profond optionnel, et sélectionne le dernier
+# vrai changement d'état plutôt qu'une mise à jour technique de même valeur.
 # L'app reste strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
