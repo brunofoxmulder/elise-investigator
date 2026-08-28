@@ -140,6 +140,22 @@ def _patch_dev31_card() -> None:
         "<li><strong>Inchangé :</strong> l'investigation manuelle et la Recherche MCP locale restent disponibles séparément avec leurs garde-fous actuels.</li>",
         "<li><strong>Investigation manuelle :</strong> elle utilise une porte profonde séparée et conserve les preuves structurées complètes. La Recherche MCP locale reste inchangée.</li>",
     )
+    dev29._CAUSAL_CARD = dev29._CAUSAL_CARD.replace(
+        '<label for="causal_fallback">Enquête approfondie de secours</label>',
+        '<label for="causal_fallback">Enquête approfondie — réglage hérité</label>',
+    )
+    dev29._CAUSAL_CARD = dev29._CAUSAL_CARD.replace(
+        "Lancer l'enquête approfondie uniquement si aucun événement correspondant n'est trouvé",
+        "Valeur héritée conservée pour compatibilité ; sans effet sur Assist en dev.31",
+    )
+    dev29._CAUSAL_CARD = dev29._CAUSAL_CARD.replace(
+        "Si cette option est désactivée, Investigator répond simplement qu'aucun événement enregistré ne permet de conclure.",
+        "Assist consulte toujours uniquement le journal causal. L'enquête approfondie est lancée seulement depuis l'IHM manuelle.",
+    )
+    dev29._CAUSAL_SCRIPT = dev29._CAUSAL_SCRIPT.replace(
+        "causalMode.textContent='Réponses conversationnelles : journal causal prioritaire · enquête approfondie '+(causalFallback.checked?'activée en secours':'désactivée')+' · Home Assistant : '+(d.read_only_home_assistant===true?'lecture seule':'état de sécurité non confirmé');",
+        "causalMode.textContent='Assist : journal causal uniquement · enquête approfondie : manuelle · Home Assistant : '+(d.read_only_home_assistant===true?'lecture seule':'état de sécurité non confirmé');",
+    )
 
 
 async def create_app() -> web.Application:
