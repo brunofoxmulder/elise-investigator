@@ -8,9 +8,11 @@ if str(APP) not in sys.path:
     sys.path.insert(0, str(APP))
 
 from causal_recorder import CausalRecord
+import main_dev29 as dev29
 from main_dev31 import (
     VERSION,
     _journal_only_for_request,
+    _patch_dev31_card,
     _patch_manual_ui_route,
     stable_investigate,
 )
@@ -126,6 +128,23 @@ class TestDev31ManualSeparation(unittest.TestCase):
         self.assertIn("api('api/v1/investigate/deep')", patched)
         self.assertNotIn("api('api/v1/investigate'),", patched)
         self.assertIn("confirmed:'confirmée'", patched)
+
+
+class TestDev31CausalUIContract(unittest.TestCase):
+    def setUp(self):
+        self.original_card = dev29._CAUSAL_CARD
+        self.original_script = dev29._CAUSAL_SCRIPT
+
+    def tearDown(self):
+        dev29._CAUSAL_CARD = self.original_card
+        dev29._CAUSAL_SCRIPT = self.original_script
+
+    def test_ui_never_claims_deep_fallback_is_used_by_assist(self):
+        _patch_dev31_card()
+        self.assertIn("sans effet sur Assist en dev.31", dev29._CAUSAL_CARD)
+        self.assertIn("L'enquête approfondie est lancée seulement depuis l'IHM manuelle", dev29._CAUSAL_CARD)
+        self.assertIn("Assist : journal causal uniquement · enquête approfondie : manuelle", dev29._CAUSAL_SCRIPT)
+        self.assertNotIn("Réponses conversationnelles : journal causal prioritaire · enquête approfondie", dev29._CAUSAL_SCRIPT)
 
 
 if __name__ == "__main__":
