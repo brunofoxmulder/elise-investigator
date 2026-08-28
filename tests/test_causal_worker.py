@@ -1,6 +1,7 @@
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 APP = Path(__file__).resolve().parents[1] / "elise_investigator" / "app"
@@ -26,7 +27,10 @@ def state_event(entity_id, old, new, *, user_id=None, attrs=None):
     attributes = attrs or {"friendly_name": entity_id}
     return {
         "event_type": "state_changed",
-        "time_fired": "2026-08-28T10:00:00+00:00",
+        # These tests exercise capture/queue behavior, not retention expiry. A
+        # fixed wall-clock timestamp eventually crosses the recorder's 12 h
+        # retention boundary and makes the test fail for the wrong reason.
+        "time_fired": datetime.now(timezone.utc).isoformat(),
         "data": {
             "entity_id": entity_id,
             "old_state": {
