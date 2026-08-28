@@ -1,19 +1,21 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.31"
+version: "0.2.0-dev.32"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev31-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev32-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.31 garde /api/v1/investigate comme porte stable connue d'Élise Why dev.18.
-# Cette porte consulte uniquement le journal causal déjà enrichi et ne lance jamais
-# d'enquête approfondie synchrone, afin de ne pas ralentir Assist. La recherche
-# approfondie reste séparée pour l'IHM manuelle via /api/v1/investigate/deep.
+# Dev.32 garde /api/v1/investigate comme porte stable connue d'Élise Why dev.18.
+# Assist consulte toujours uniquement le journal causal déjà enrichi et ne lance jamais
+# d'enquête approfondie synchrone. Dev.32 ajoute l'explication déterministe des positions
+# partielles de volets : l'ancre n'est acceptée que si une trace exécutée prouve un
+# cover.set_cover_position vers exactement la position finale observée.
+# La recherche approfondie reste séparée pour l'IHM via /api/v1/investigate/deep.
 # L'app reste strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
