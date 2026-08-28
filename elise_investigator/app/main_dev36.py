@@ -34,7 +34,15 @@ def configure_dev36() -> None:
 
 async def create_app() -> web.Application:
     configure_dev36()
-    return await dev34.create_app()
+    app = await dev34.create_app()
+    # main_dev29 already installs the terrain-proven in-process HA-MCP read-only
+    # client. Dev.36 uses it only as a trace fallback for one Logbook-identified
+    # source if Home Assistant refuses the App token on the direct trace API.
+    worker = app.get("causal_worker")
+    mcp_client = app.get("mcp")
+    if isinstance(worker, TargetedConsciousMemoryWorker):
+        worker.targeted.set_mcp_client(mcp_client)
+    return app
 
 
 if __name__ == "__main__":
