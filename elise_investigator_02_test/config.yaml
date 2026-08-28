@@ -1,19 +1,19 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.30"
+version: "0.2.0-dev.31"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev30-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev31-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.30 conserve le journal causal persistant de dev.29 et l'investigation
-# manuelle approfondie. Elle ajoute l'endpoint /api/v1/why destiné à Élise Why /
-# Assist, journal-first avec secours profond optionnel, et sélectionne le dernier
-# vrai changement d'état plutôt qu'une mise à jour technique de même valeur.
+# Dev.31 garde /api/v1/investigate comme porte stable connue d'Élise Why dev.18.
+# Cette porte consulte uniquement le journal causal déjà enrichi et ne lance jamais
+# d'enquête approfondie synchrone, afin de ne pas ralentir Assist. La recherche
+# approfondie reste séparée pour l'IHM manuelle via /api/v1/investigate/deep.
 # L'app reste strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
