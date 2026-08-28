@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
 from aiohttp import web
 
@@ -17,6 +16,7 @@ from conversation import ConversationResolutionError
 from ha_client import HomeAssistantError
 from ha_event_stream import HAStateChangeStream
 from mcp_client_inprocess import InProcessMCPReadOnlyClient
+from v02_investigator import V02Investigator
 
 VERSION = "0.2.0-dev.29"
 DATA_DIR = Path("/data")
@@ -217,7 +217,17 @@ async def create_app() -> web.Application:
     settings_store = CausalSettingsStore(SETTINGS_FILE)
     settings = settings_store.load()
     recorder = CausalRecorder(JOURNAL_FILE, retention_hours=settings.retention_hours)
-    enricher = CausalEnricher(app["investigator"], app["ha"])
+
+    # Keep the terrain-proven dev.28 manual engine untouched. The journal uses a
+    # separate dev.16-derived deterministic engine so long traces, action-local
+    # waits/branches and cover movement episodes are available during enrichment.
+    options = base.load_options()
+    causal_investigator = V02Investigator(
+        app["ha"],
+        default_window_minutes=int(options.get("default_window_minutes", 30)),
+        max_reverse_candidates=int(options.get("max_reverse_candidates", 25)),
+    )
+    enricher = CausalEnricher(causal_investigator, app["ha"])
     worker = CausalRecorderWorker(
         HAStateChangeStream(app["session"]),
         recorder,
@@ -227,6 +237,7 @@ async def create_app() -> web.Application:
     app["causal_settings_store"] = settings_store
     app["causal_settings"] = settings
     app["causal_recorder"] = recorder
+    app["causal_investigator"] = causal_investigator
     app["causal_worker"] = worker
 
     base.add_ingress_get(app, "/api/v1/causal/status", causal_status)
