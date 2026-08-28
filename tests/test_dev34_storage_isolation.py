@@ -27,7 +27,7 @@ class TestDev34StorageIsolation(unittest.TestCase):
                 dev29.JOURNAL_FILE,
                 Path("/data") / "causal_journal.sqlite3",
             )
-            self.assertEqual(dev34.VERSION, "0.2.0-dev.34.1")
+            self.assertEqual(dev34.VERSION, "0.2.0-dev.35")
         finally:
             dev29.JOURNAL_FILE = old_journal
             dev34.VERSION = old_version
