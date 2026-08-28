@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.0-dev.29
+
+- Ajout d’un **journal causal persistant local** sous SQLite : les changements significatifs d’entités Home Assistant sont enregistrés avant enrichissement causal, puis conservés pendant une durée glissante réglable.
+- La durée de conservation est réglable directement dans l’IHM de **1 à 72 heures**, avec **12 heures par défaut**.
+- Une case **« Enquête approfondie de secours »** permet d’activer ou désactiver l’ancien moteur d’enquête lorsque le journal causal ne contient pas d’événement correspondant.
+- Pour les réponses conversationnelles, Investigator consulte désormais **le journal causal en priorité** avant de lancer une enquête profonde.
+- Lorsqu’une action provient d’une automatisation, la réponse destinée à l’utilisateur privilégie la **raison fonctionnelle prouvée** ; le nom de l’automatisation et la trace restent des preuves internes.
+- Lorsqu’une action est directe, la réponse peut indiquer **utilisateur** ; **Alexa** n’est mentionnée que si cette provenance est réellement prouvée.
+- Le dernier déclencheur réellement exécuté est prioritaire lorsqu’il explique l’action. Un déclencheur générique comme `time_pattern` n’est pas présenté comme cause fonctionnelle ; les facteurs décisifs prouvés dans la même trace peuvent être utilisés à la place.
+- Ajout de l’extraction conservatrice des facteurs runtime d’une valeur calculée, afin de pouvoir expliquer par exemple qu’une position de volet résulte de la **position du soleil et de la luminosité** lorsque la trace le prouve.
+- Sortie vers le LLM volontairement minimale : entité, événement, heure, valeur éventuelle, raison ou source directe. Les traces complètes et variables techniques restent dans Investigator.
+- Nouvelle carte IHM **« Journal causal · dev.29 »** : état du journal, nombre d’événements conservés, file d’enrichissement, causes enrichies, erreurs éventuelles, priorité du journal et rappel **Home Assistant : lecture seule**.
+- L’IHM de **recherche manuelle** et la **Recherche MCP locale** sont conservées et restent séparées du journal causal.
+- L’écoute `state_changed` utilise une connexion WebSocket dédiée et strictement en lecture seule. Aucun service Home Assistant mutateur n’est ajouté.
+- Image privée `0.2.0-dev.29` construite et vérifiée avant promotion de l’app de test.
+
+## 0.2.0-dev.16 → dev.28 — synthèse des jalons intermédiaires
+
+- **dev.16** : consolidation de la résolution naturelle française et traitement plus cohérent des épisodes de mouvement des volets, sans modifier la politique de preuve.
+- **dev.17 → dev.23** : construction et validation progressive du raccordement local en lecture seule entre Investigator et HA-MCP ; aucun LLM ajouté au moteur causal et aucun verdict Investigator renforcé par MCP.
+- **dev.24** : synthèse MCP locale déterministe des états, historiques et pistes de configuration, avec `IA : non` et verdict causal Investigator inchangé.
+- **dev.25** : validation du contrat live de `ha_get_automation_traces` à partir des métadonnées `tools/list`, sans appel de trace dans ce jalon.
+- **dev.26** : exploration MCP bornée des traces candidates, limitée en nombre de candidats, d’exécutions et de détails, sans transformer la proximité temporelle en preuve causale.
+- **dev.27** : ajout du bouton **Texte** pour copier localement un résumé lisible du diagnostic MCP, sans envoi automatique ni secret.
+- **dev.28** : la carte **Recherche MCP locale** reçoit son propre sélecteur d’objet Home Assistant et devient indépendante du formulaire d’investigation manuelle.
+- Sur toute cette séquence, les invariants restent inchangés : lecture seule Home Assistant, aucun service mutateur, aucun LLM dans le moteur causal, refus de deviner en cas d’ambiguïté.
+
 ## 0.2.0-dev.15
 
 - Version volontairement limitée au diagnostic et à l’observabilité : aucun changement du moteur causal ni de la logique de résolution.
