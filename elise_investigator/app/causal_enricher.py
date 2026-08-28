@@ -134,6 +134,12 @@ def _proven_trigger(result: InvestigationResult) -> dict[str, Any] | None:
     return None
 
 
+def _structured_human_cause(result: InvestigationResult) -> dict[str, Any] | None:
+    explanation = result.meta.get("explanation") if isinstance(result.meta, dict) else None
+    cause = explanation.get("human_cause") if isinstance(explanation, dict) else None
+    return cause if isinstance(cause, dict) and cause.get("proven") is True else None
+
+
 def _technical_trigger_platform(human_cause: dict[str, Any] | None) -> str:
     detail = human_cause.get("detail") if isinstance(human_cause, dict) else None
     if not isinstance(detail, dict):
@@ -204,7 +210,9 @@ class CausalEnricher:
         record.trace_run_id = _trace_run_id(result)
 
         conditions = extract_passed_conditions(result)
-        human_cause = (
+        # When the dev.16 enrichment engine already selected a proven action-local
+        # cause, reuse that exact selection rather than independently re-ranking it.
+        human_cause = _structured_human_cause(result) or (
             select_effect_linked_cause(result)
             or select_branch_decision_cause(result)
             or select_human_cause(result)
@@ -212,7 +220,7 @@ class CausalEnricher:
         await self._label_cause(human_cause)
 
         if human_cause:
-            text = human_cause_text(human_cause)
+            text = str(human_cause.get("text") or "").strip() or human_cause_text(human_cause)
             if text:
                 record.reason = text
             record.reason_code = str(human_cause.get("origin") or human_cause.get("kind") or "") or None
