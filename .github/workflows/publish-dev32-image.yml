@@ -1,9 +1,9 @@
-name: Publish dev.32 private image
+name: Publish dev.33 private image
 
 on:
   push:
     branches:
-      - dev32-cover-partial-position
+      - dev33-journal-cover-episodes
     paths:
       - '.github/workflows/publish-dev32-image.yml'
       - 'elise_investigator/**'
@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   build-publish:
-    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/dev32-cover-partial-position'
+    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/dev33-journal-cover-episodes'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout dev.32
+      - name: Checkout dev.33
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -38,10 +38,10 @@ jobs:
           file: ./elise_investigator/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/brunofoxmulder/elise-investigator-dev32-private:0.2.0-dev.32
+          tags: ghcr.io/brunofoxmulder/elise-investigator-dev33-private:0.2.0-dev.33
           build-args: |
-            BUILD_VERSION=0.2.0-dev.32
+            BUILD_VERSION=0.2.0-dev.33
             BUILD_ARCH=amd64
 
       - name: Verify published image manifest
-        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev32-private:0.2.0-dev.32
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev33-private:0.2.0-dev.33
