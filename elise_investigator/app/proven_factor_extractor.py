@@ -39,7 +39,9 @@ def _numeric_relation(detail: dict[str, Any]) -> tuple[str | None, Any]:
         actual = _number(detail.get("actual"))
         above_n = _number(above)
         below_n = _number(below)
-        if above is not None and below is not None and actual is not None:
+        if above is not None and below is not None:
+            if actual is None:
+                return None, None
             if above_n is not None and actual <= above_n:
                 return "not_above", above
             if below_n is not None and actual >= below_n:
