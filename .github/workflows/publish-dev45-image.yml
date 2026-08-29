@@ -5,7 +5,7 @@ on:
     branches:
       - dev45-cover-target-command-fallback
     paths:
-      - '.github/workflows/publish-dev44-image.yml'
+      - '.github/workflows/publish-dev45-image.yml'
       - 'elise_investigator/**'
   workflow_dispatch:
 
