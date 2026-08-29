@@ -18,7 +18,9 @@ from models import InvestigationRequest
 from request_journal_dev34 import RequestJournal
 
 
-BASE = datetime(2026, 8, 28, 20, 0, tzinfo=timezone.utc)
+# Exercise the production rolling-memory semantics without tying the suite to a
+# particular calendar day. Ten minutes leaves room for the longest +5 min case.
+BASE = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(minutes=10)
 
 
 def iso(offset: int = 0) -> str:
