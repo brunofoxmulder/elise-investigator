@@ -1,9 +1,9 @@
-name: Publish dev.44 private image
+name: Publish dev.45 private image
 
 on:
   push:
     branches:
-      - dev44-cover-terminal-start-retry
+      - dev45-cover-target-command-fallback
     paths:
       - '.github/workflows/publish-dev44-image.yml'
       - 'elise_investigator/**'
@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   build-publish:
-    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/dev44-cover-terminal-start-retry'
+    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/dev45-cover-target-command-fallback'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout dev.44
+      - name: Checkout dev.45
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -38,10 +38,10 @@ jobs:
           file: ./elise_investigator/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/brunofoxmulder/elise-investigator-dev44-private:0.2.0-dev.44
+          tags: ghcr.io/brunofoxmulder/elise-investigator-dev45-private:0.2.0-dev.45
           build-args: |
-            BUILD_VERSION=0.2.0-dev.44
+            BUILD_VERSION=0.2.0-dev.45
             BUILD_ARCH=amd64
 
       - name: Verify published image manifest
-        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev44-private:0.2.0-dev.44
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev45-private:0.2.0-dev.45
