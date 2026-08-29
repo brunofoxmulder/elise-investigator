@@ -17,7 +17,8 @@ from main_dev37 import configure_dev37
 from memory_worker_dev34 import ConsciousMemoryWorker
 from targeted_memory_enricher_dev37 import TargetedMemoryEnricher
 
-BASE = datetime(2026, 8, 28, 21, 0, tzinfo=timezone.utc)
+# Keep dev.37 regression scenarios representative of the live 12 h memory window.
+BASE = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(minutes=10)
 
 
 def iso(seconds: float = 0) -> str:

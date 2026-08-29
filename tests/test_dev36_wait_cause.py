@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 APP = Path(__file__).resolve().parents[1] / "elise_investigator" / "app"
@@ -14,7 +14,9 @@ from causal_recorder import CausalRecord
 from causal_recorder_dev33 import RelevantCausalRecorder
 from targeted_memory_enricher_dev36 import TargetedMemoryEnricher
 
-EVENT_TIME = "2026-08-28T21:30:10+00:00"
+# Keep the synthetic event inside the real 12 h retention window while preserving
+# the exact temporal relationships exercised by the scenario.
+EVENT_TIME = (datetime.now(timezone.utc).replace(microsecond=0) - timedelta(minutes=10)).isoformat()
 
 
 class FakeHA:
