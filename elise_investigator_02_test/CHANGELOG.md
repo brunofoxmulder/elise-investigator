@@ -1,5 +1,90 @@
 # Changelog
 
+## 0.2.0-dev.38
+
+- Corrige le cas terrain confirmé des **volets positionnables en fermeture partielle** : Home Assistant peut terminer un mouvement par `closing → open` alors que `current_position` porte bien la position partielle atteinte.
+- La direction de l’épisode est désormais déterminée depuis l’état de mouvement **avant le terminal** (`before_value`) et non depuis le seul état terminal générique.
+- Les terminaisons cohérentes reconnues sont strictement : `closing → closed`, `closing → open` et `opening → open` ; une combinaison incohérente telle que `opening → closed` est rejetée.
+- La cause déjà prouvée au début du mouvement est propagée au terminal et à l’attribut coalescé `current_position`, sans nouvelle recherche Logbook lorsque la continuité de l’épisode suffit.
+- La correction est isolée dans les modules dev.38 et conserve le comportement dev.37 hors de ce cas.
+- Les fixtures temporelles des tests dev.34 à dev.38 ont été rendues **relatives à l’heure d’exécution** afin de rester représentatives de la mémoire glissante de 12 h et de ne plus expirer artificiellement avec le calendrier réel.
+- Les scénarios terrain restent explicitement testés : attente de 5 min, horizon légèrement supérieur à 5 min, purge après 13 h, fermeture partielle, fermeture complète, ouverture, incohérence de direction et propagation à `current_position`.
+- Régression complète validée : **164 tests PASS**, compilation Python et digital twin inclus.
+- Image privée `ghcr.io/brunofoxmulder/elise-investigator-dev38-private:0.2.0-dev.38` construite, publiée et manifeste OCI vérifié.
+- L’App **Élise Investigator 0.2 Test** pointe désormais vers la version `0.2.0-dev.38` et l’image privée dev.38 pour permettre la mise à jour manuelle dans Home Assistant.
+- Invariants inchangés : Investigator reste strictement **lecture seule**, aucun service Home Assistant mutateur, aucun LLM dans le moteur causal, Élise Why et Maison Élise inchangées.
+
+## 0.2.0-dev.37
+
+- Conserve intégralement le principe et la création de la **mémoire consciente** validés en dev.36 ; dev.37 ne modifie que l’enrichissement des souvenirs déjà créés.
+- Une source `automation` ou `script` déjà prouvée par le flux Home Assistant n’est plus écrasée lorsque le Logbook terminal ne montre plus qu’un `call_service`.
+- L’horizon de corrélation interne est étendu au-delà de 5 minutes, tout en gardant les listes bornées, pour couvrir les actions différées et le cas terrain de la hotte juste au-delà de 5 min.
+- Les raisons techniques de type `state of binary_sensor...` ne sont plus exposées à l’utilisateur lorsqu’une trace ciblée permet une formulation métier.
+- Les déclencheurs de contact peuvent être formulés naturellement, par exemple **porte-fenêtre ouverte / refermée** lorsque cette cause est prouvée.
+- La fin d’un épisode de volet `closing → closed` ou `opening → open` peut hériter de la cause déjà prouvée au début du même mouvement, uniquement sous contrôle de la direction et d’un délai maximal de 300 s.
+- Aucun rattachement causal n’est effectué sur la seule proximité temporelle.
+- Cas de non-régression ajoutés : extinction terrasse sur fermeture de porte-fenêtre, SDB après `wait_for_trigger` sans mouvement, hotte au-delà de 5 min, propagation de fin de mouvement cover et rejet du sens opposé.
+- Image privée `0.2.0-dev.37` qualifiée et distribuée pour recette terrain.
+- Aucun changement du chemin conversationnel, d’Élise Why, d’Assist, de Maison Élise ou de HA-MCP ; Home Assistant reste strictement en lecture seule.
+
+## 0.2.0-dev.36
+
+- Conserve l’architecture **mémoire consciente du LLM** et une seule App Élise Investigator, sans revenir à l’enrichissement large des dev.29–33.
+- Chaque `state_changed` utile est persisté immédiatement dans `/data/conscious_memory.sqlite3` ; état principal et attributs du même contexte sont coalescés.
+- Après environ **1,5 s de calme**, une seule lecture Logbook bornée à l’entité et à une petite fenêtre temporelle recherche le contexte exact.
+- Lorsqu’une automation ou un script est identifié, une seule source est examinée et une trace n’est acceptée que si une action réellement exécutée cible l’entité concernée.
+- La lecture directe Home Assistant est utilisée en priorité ; si l’API de trace est refusée au jeton de l’App, le canal HA-MCP in-process déjà validé sert de secours, toujours de façon bornée et pour cette source uniquement.
+- Aucune recherche inverse globale, aucune file FIFO bornée et aucun abandon silencieux d’enrichissement.
+- Le chemin normal `/api/v1/investigate` reste **100 % mémoire locale** au moment de la question ; absence de cause : réponse exacte « Je n’ai pas trouvé la cause. »
+- `status=confirmed` reste un champ de compatibilité technique et ne représente pas un calcul de certitude.
+- Recette ciblée : hotte sur mouvement, salle de bain sur absence de mouvement, volet soleil/lux, commande utilisateur et position partielle.
+- Image privée `0.2.0-dev.36` qualifiée et distribuée ; aucun changement Why / Assist / Maison Élise / HA-MCP.
+
+## 0.2.0-dev.35
+
+- Isole définitivement la **mémoire consciente** de l’ancien journal causal hérité des dev.29–33.
+- Les nouveaux souvenirs sont stockés dans `/data/conscious_memory.sqlite3` ; l’ancien `/data/causal_journal.sqlite3` reste intact pour permettre le rollback et ne pollue plus la mémoire consciente.
+- Le journal diagnostic entrée/sortie des requêtes reste séparé du raisonnement causal.
+- La forme de version intermédiaire `0.2.0-dev.34.1` a été abandonnée : Home Assistant 2026.8.3 / AwesomeVersion 25.8.0 ne la considérait pas comme supérieure à `0.2.0-dev.34`, ce qui laissait le bouton de mise à jour grisé.
+- La version comparable `0.2.0-dev.35` a donc été utilisée pour distribuer exactement la même correction d’isolation.
+- La recette terrain repart avec une mémoire vide, qui ne contient ensuite que les changements utiles capturés après démarrage.
+- Élise Why, Maison Élise et Home Assistant restent inchangés ; lecture seule stricte conservée.
+
+## 0.2.0-dev.34
+
+- Remplace le chemin normal d’enrichissement profond par une **mémoire consciente locale, légère et événementielle**, tout en conservant l’enquête profonde explicite pour le diagnostic.
+- Un `state_changed` réel reste le fait obligatoire ; `call_service` et `automation_triggered` ne servent que de contextes causaux éphémères lorsqu’ils sont disponibles.
+- Seul un effet réel sur un objet utile écrit un souvenir SQLite ; une automatisation qui s’évalue sans effet ne crée aucun souvenir.
+- La mémoire conserve par défaut 12 h d’événements, réglables de 1 à 72 h.
+- Le chemin `/api/v1/investigate` reste la porte connue d’Élise Why ; le chemin normal ne lance plus de recherche profonde au moment de la question.
+- L’absence de cause produit volontairement « Je n’ai pas trouvé la cause. » plutôt qu’une supposition.
+- L’enquête approfondie reste disponible séparément via `/api/v1/investigate/deep` pour le diagnostic de développement.
+- Une perte éventuelle des événements `call_service` ou `automation_triggered` liée aux permissions ne fait jamais inventer une cause : le flux `state_changed` reste actif et la cause reste simplement absente.
+- Aucun nouveau dashboard produit, aucun nouveau droit Home Assistant et aucune écriture HA.
+
+## 0.2.0-dev.33
+
+- Corrige la sélection du journal causal lorsqu’un même `state_changed` génère plusieurs lignes au même instant, par exemple **état principal + brightness**.
+- Sans indice explicite de valeur ou d’attribut, la recherche générique privilégie désormais le changement d’état principal dans le groupe temporel pertinent ; une valeur ou un attribut explicitement demandé reste prioritaire.
+- Les épisodes de volet `opening` / `closing` sont traités comme des **blocs continus** : plusieurs lignes normales de mouvement ne cassent plus la détection du début d’épisode.
+- Le moteur remonte au début du bloc continu et exige toujours une origine cohérente immédiatement avant ce bloc, avec conservation de la limite temporelle.
+- `context_service` (`open_cover`, `close_cover`, `set_cover_position`) reste une preuve du service de mouvement mais n’identifie jamais à lui seul l’auteur de la commande et n’augmente pas la certitude.
+- Les positions partielles introduites en dev.32 et tous les garde-fous de preuve sont conservés.
+- Qualification hors terrain : **136 tests PASS**, image privée dev.33 construite et vérifiée.
+- Élise Why reste figée, Maison Élise inchangée et Home Assistant strictement en lecture seule.
+
+## 0.2.0-dev.32
+
+- Corrige le cas terrain des **positions partielles de volets** observé après dev.31.
+- L’effet causal observé est le changement réel de `current_position`, par exemple `100 → 50`, même si Home Assistant termine l’épisode avec un état principal générique tel que `closing → open`.
+- Investigator recherche le bloc `opening` / `closing` directement adjacent du même épisode et remonte au début du mouvement comme ancre causale.
+- L’ancre n’est acceptée que si une trace réellement exécutée contient `cover.set_cover_position` vers **exactement la position finale observée**.
+- La proximité temporelle ou une simple mention dans la configuration ne suffisent jamais comme preuve.
+- Aucun `entity_id` Maison Cognitive n’est codé en dur : la correction reste générique pour les covers positionnables.
+- Élise Why reste inchangée ; `/api/v1/investigate` reste journal-only pour Assist et l’enquête profonde manuelle reste séparée.
+- Qualification hors terrain : **128 tests PASS**, image privée dev.32 construite et vérifiée.
+- Home Assistant reste strictement en lecture seule.
+
 ## 0.2.0-dev.31
 
 - **Élise Why reste inchangée** : elle conserve sa porte historique `POST /api/v1/investigate`. Aucun changement HACS ni redémarrage Home Assistant n'est requis pour ce jalon.
