@@ -1,20 +1,21 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.44"
+version: "0.2.0-dev.45"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev44-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev45-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.44 conserve dev.43 (factors structurés + causes combinées) et corrige le cas terrain
-# où le début d'un épisode cover reste provisoirement unknown au moment du mouvement.
-# Au terminal cohérent opening/closing, l'enrichissement ciblé du début est retenté une fois,
-# puis la cause prouvée peut être propagée au terminal et à current_position.
-# Aucun nom d'automatisation/volet n'est codé en dur, aucune recherche inverse globale.
+# Dev.45 conserve dev.44 et ajoute un fallback déterministe générique pour les covers.
+# Si une automation/script est prouvée mais qu'aucune raison métier n'est extraite,
+# une unique commande exécutée cover.set_cover_position sur le même cover permet de
+# conserver la preuve technique de position cible calculée et de la propager à l'épisode.
+# Investigator ne traduit pas cette preuve en langage métier et n'interprète pas le Jinja.
+# Aucun nom d'automatisation/volet n'est codé en dur ; le fallback échoue fermé si la preuve est ambiguë.
 # Les réponses legacy restent pilotées par reason ; factors reste additif.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 # La mémoire consciente reste isolée dans /data/conscious_memory.sqlite3.
