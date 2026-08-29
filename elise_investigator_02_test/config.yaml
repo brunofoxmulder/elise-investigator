@@ -1,36 +1,23 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.38"
+version: "0.2.0-dev.43"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev38-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev43-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.37 conserve sans changement la mémoire consciente isolée dans
-# /data/conscious_memory.sqlite3 et le chemin conversationnel mémoire-only de dev.36.
-# La création des souvenirs est inchangée : objet, effet réel, heure et avant/après
-# sont persistés immédiatement ; seuls les champs de cause/origine sont mieux enrichis.
-# Une source automation/script déjà prouvée par le contexte HA n'est plus écrasée par
-# un Logbook terminal ne montrant qu'un call_service. Les contextes en mémoire vive
-# restent bornés en nombre mais sont conservés assez longtemps pour les actions différées.
-# Les raisons techniques « state of binary_sensor... » ne sont plus exposées comme
-# causes finales quand une trace ciblée permet une formulation métier.
-# Pour les covers, l'état terminal closing->closed / opening->open peut hériter de la
-# cause déjà prouvée au début du même mouvement, uniquement si direction et délai
-# maximum de l'épisode correspondent ; aucune association par simple proximité.
-# Il n'y a ni recherche inverse globale, ni file FIFO bornée, ni drop d'enrichissement.
-# La mémoire est de 12 h par défaut, réglable de 1 à 72 h dans l'IHM.
-# /api/v1/investigate reste la porte stable connue d'Élise Why dev.18 et consulte
-# uniquement la mémoire locale au moment de la question.
-# status=confirmed reste une compatibilité technique ; aucun niveau de certitude
-# n'est calculé. Sans cause disponible : « Je n'ai pas trouvé la cause. »
-# Le journal diagnostic entrée/sortie reste séparé du raisonnement.
-# L'enquête approfondie manuelle reste séparée via /api/v1/investigate/deep.
+# Dev.43 embarque les corrections cover dev.39 et le contrat de facteurs structurés
+# dev.40-dev.43. Les réponses legacy restent pilotées par reason ; factors est additif.
+# Les causes combinées ne sont produites que par une règle conservative : prédicats
+# présents comme triggers configurés + conditions runtime vraies sur le chemin exécuté.
+# Les gardes vraies ordinaires ne sont pas automatiquement promues en causes.
+# Métadonnées métier éventuelles : libellé seulement, jamais preuve causale.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
+# La mémoire consciente reste isolée dans /data/conscious_memory.sqlite3.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
