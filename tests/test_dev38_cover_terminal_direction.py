@@ -13,7 +13,9 @@ if str(APP) not in sys.path:
 from causal_recorder import CausalRecord, CausalRecorder
 from targeted_memory_enricher_dev38 import TargetedMemoryEnricher
 
-BASE = datetime(2026, 8, 29, 8, 0, tzinfo=timezone.utc)
+# Keep simulated cover episodes recent enough to exercise the same 12 h rolling
+# memory policy used on the HA deployment, without tying the suite to a calendar day.
+BASE = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(minutes=10)
 ENTITY = "cover.volet_terrasse_2"
 
 
