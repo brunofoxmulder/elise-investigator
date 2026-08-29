@@ -18,7 +18,8 @@ from memory_response_dev34 import answer_from_memory
 from memory_worker_dev36 import TargetedConsciousMemoryWorker
 from targeted_memory_enricher_dev36 import TargetedMemoryEnricher, _select_logbook_entry
 
-BASE = datetime(2026, 8, 28, 21, 0, tzinfo=timezone.utc)
+# Keep simulated HA/logbook/trace events inside the actual rolling-memory window.
+BASE = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(minutes=10)
 
 
 def iso(seconds: float = 0) -> str:
