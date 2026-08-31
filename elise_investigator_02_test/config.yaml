@@ -1,10 +1,10 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.45"
+version: "0.2.0-dev.46"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev45-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev46-private"
 init: false
 startup: application
 boot: manual
