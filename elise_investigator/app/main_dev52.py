@@ -6,7 +6,10 @@ from aiohttp import web
 
 import main_dev29 as dev29
 import main_dev34 as dev34
+import main_dev45 as dev45
 import main_dev46 as dev46
+from memory_worker_dev45 import TargetedConsciousMemoryWorker as Dev45TargetedConsciousMemoryWorker
+from memory_worker_dev46 import TargetedConsciousMemoryWorker
 
 # Dev.52 is a clean rebuild from the exact dev.46 code line.
 # The causal engine is not modified. The only functional difference is storage
@@ -25,13 +28,19 @@ def configure_dev52() -> None:
     dev29.JOURNAL_FILE = CONSCIOUS_MEMORY_FILE
     dev34.REQUEST_JOURNAL_FILE = REQUEST_JOURNAL_FILE
     dev34._MEMORY_CARD = dev34._MEMORY_CARD.replace(
-        "Mémoire consciente · dev.46", "Mémoire consciente · dev.52 (socle dev.46 propre)"
+        "Mémoire consciente · dev.46",
+        "Mémoire consciente · dev.52 (socle dev.46 propre)",
     )
 
 
 async def create_app() -> web.Application:
     configure_dev52()
-    return await dev46.create_app()
+    app = await dev34.create_app()
+    worker = app.get("causal_worker")
+    mcp_client = app.get("mcp")
+    if isinstance(worker, (TargetedConsciousMemoryWorker, Dev45TargetedConsciousMemoryWorker)):
+        worker.targeted.set_mcp_client(mcp_client)
+    return app
 
 
 if __name__ == "__main__":
