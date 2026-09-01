@@ -1,26 +1,24 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.52"
+version: "0.2.0-dev.53"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev52-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev53-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# RECOVERY TERRAIN 2026-09-01 : reconstruction propre depuis le commit exact dev.46
+# ROLLBACK COMPLET TERRAIN 2026-09-01 : retour au niveau fonctionnel d'avant dev.47.
+# Runtime exact : main_dev46.py depuis le commit dev.46
 # 1fa3e63852a3ce701b1f230fa0311942d7589d2f.
-# Dev.52 conserve le moteur causal, covers/volets et épisodes brightness de dev.46.
-# Différence volontaire : stockage neuf et isolé afin de ne réutiliser aucun souvenir
-# écrit par les dev.47 à dev.51 dans /data/conscious_memory.sqlite3.
-# Mémoire dev.52 : /data/conscious_memory_dev52.sqlite3
-# Journal demandes dev.52 : /data/investigator_requests_dev52.sqlite3
-# Qualification : compilation PASS, 212/212 tests PASS, dont vérification explicite
-# du worker dev.46 inchangé et de l'isolation des fichiers persistants.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev52-private:0.2.0-dev.52
-# Manifeste OCI vérifié : sha256:ab63f431d2fab3eb9afd551eec9bb58ea355962838353cee552ddd4a0a6f2533.
+# Restaure le stockage historique dev.46 : /data/conscious_memory.sqlite3
+# et le fonctionnement mémoire/MCP/volets/lumières/enrichissement associé.
+# Les fichiers temporaires dev.52 sont nettoyés au démarrage sans toucher à l'ancienne mémoire.
+# Qualification dev.53 : tests PASS, build/publish PASS, manifeste OCI vérifié.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev53-private:0.2.0-dev.53
+# Digest OCI : sha256:28ee52e8da8f2c1984c0e2cda78cdddc1559ec8d4c6bbd2c8bd52422f53abc39
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
