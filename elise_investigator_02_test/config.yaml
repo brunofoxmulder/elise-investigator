@@ -1,24 +1,26 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.48"
+version: "0.2.0-dev.49"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev48-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev49-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.48 conserve intégralement dev.47 et ajoute uniquement une seconde tentative
-# ciblée d'enrichissement lorsqu'un vrai changement primaire off↔on / on↔off
-# non-cover est déjà attribué à une automation/script mais garde reason=null.
-# Aucun élargissement de recherche causale : la même source déjà prouvée est relue
-# une seule fois après un court délai pour laisser la trace HA devenir exploitable.
-# Les changements d'attribut (dont brightness) sont exclus de ce retry.
-# Les entités cover.* sont totalement exclues et conservent strictement la logique
-# validée par épisodes dev.45/dev.46. Aucune interprétation métier n'est ajoutée.
-# Aucun nom d'automatisation/objet Maison Cognitive n'est codé en dur.
+# Dev.49 conserve l'architecture et la logique cover validées jusqu'en dev.48.
+# Correction 1 : pour les questions d'état génériques non-cover, les transitions
+# techniques liées à unknown/unavailable ne remplacent plus le dernier vrai off↔on.
+# Correction 2 : lorsqu'un contexte Home Assistant a déjà prouvé l'automatisation
+# ou le script à l'origine d'un vrai off↔on, la trace de cette source peut être relue
+# pour récupérer la raison fonctionnelle même si une device action n'expose pas
+# l'entity_id canonique dans la cible de service.
+# Les entités cover.* sont exclues du fallback générique et conservent strictement
+# les épisodes ouverture/fermeture/position déjà validés.
+# Qualification avant terrain : replay Tineco, chargeur téléphone, yaourtière,
+# aspirateur et garde-fou volets ; suite complète 230/230 tests PASS.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 # La mémoire consciente reste isolée dans /data/conscious_memory.sqlite3.
 ingress: true
