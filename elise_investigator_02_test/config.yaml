@@ -1,22 +1,22 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.46"
+version: "0.2.0-dev.47"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev46-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev47-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.45 conserve dev.44 et ajoute un fallback déterministe générique pour les covers.
-# Si une automation/script est prouvée mais qu'aucune raison métier n'est extraite,
-# une unique commande exécutée cover.set_cover_position sur le même cover permet de
-# conserver la preuve technique de position cible calculée et de la propager à l'épisode.
-# Investigator ne traduit pas cette preuve en langage métier et n'interprète pas le Jinja.
-# Aucun nom d'automatisation/volet n'est codé en dur ; le fallback échoue fermé si la preuve est ambiguë.
-# Les réponses legacy restent pilotées par reason ; factors reste additif.
+# Dev.47 conserve intégralement dev.46 et corrige uniquement la sélection des
+# questions génériques d'état allumé/éteint : un changement d'attribut ultérieur
+# comme brightness ne masque plus le dernier vrai changement d'état primaire.
+# Toute demande explicite d'attribut, de valeur ou d'heure conserve la sémantique
+# dev.46. Les entités cover.* sont exclues du nouveau sélecteur et conservent
+# strictement la logique validée par épisodes dev.45/dev.46.
+# Aucun nom d'automatisation/objet Maison Cognitive n'est codé en dur.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 # La mémoire consciente reste isolée dans /data/conscious_memory.sqlite3.
 ingress: true
