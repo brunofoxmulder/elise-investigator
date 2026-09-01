@@ -11,7 +11,7 @@ if str(APP) not in sys.path:
 class TestDev29Architecture(unittest.TestCase):
     def test_candidate_launcher_uses_current_wrapper(self):
         run_sh = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertIn("main_dev46.py", run_sh)
+        self.assertIn("main_dev52.py", run_sh)
         self.assertNotIn("main_mcp_inprocess.py", run_sh)
 
     def test_manual_investigate_endpoint_is_not_replaced_in_dev29_base(self):
@@ -75,6 +75,7 @@ class TestDev29Architecture(unittest.TestCase):
             "main_dev44.py",
             "main_dev45.py",
             "main_dev46.py",
+            "main_dev52.py",
             "memory_response_dev34.py",
             "memory_worker_dev34.py",
             "memory_worker_dev36.py",
