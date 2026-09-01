@@ -27,7 +27,7 @@ jobs:
           python-version: '3.13'
 
       - name: Install runtime dependencies
-        run: python -m pip install -r elise_investigator/requirements.txt
+        run: python -m pip install aiohttp
 
       - name: Compile candidate
         run: python -m compileall -q elise_investigator/app
