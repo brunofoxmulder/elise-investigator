@@ -1,26 +1,26 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.49"
+version: "0.2.0-dev.50"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev49-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev50-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.49 conserve l'architecture et la logique cover validées jusqu'en dev.48.
-# Correction 1 : pour les questions d'état génériques non-cover, les transitions
-# techniques liées à unknown/unavailable ne remplacent plus le dernier vrai off↔on.
-# Correction 2 : lorsqu'un contexte Home Assistant a déjà prouvé l'automatisation
-# ou le script à l'origine d'un vrai off↔on, la trace de cette source peut être relue
-# pour récupérer la raison fonctionnelle même si une device action n'expose pas
-# l'entity_id canonique dans la cible de service.
-# Les entités cover.* sont exclues du fallback générique et conservent strictement
-# les épisodes ouverture/fermeture/position déjà validés.
-# Qualification avant terrain : replay Tineco, chargeur téléphone, yaourtière,
-# aspirateur et garde-fou volets ; suite complète 230/230 tests PASS.
+# Dev.50 conserve intégralement les corrections dev.49 et la logique cover validée.
+# Correction ciblée REG-48-02 : lorsqu'un vrai changement primaire non-cover est déjà
+# relié par le contexte Home Assistant à une automation/script précise, Investigator
+# peut récupérer la cause depuis un wait_for_trigger imbriqué immédiatement avant
+# l'action d'effet dans la même séquence exécutée, y compris si la device action
+# n'expose pas l'entity_id canonique dans ses params runtime.
+# Le fallback reste borné : source exacte déjà prouvée, effet off↔on, action unique
+# sémantiquement compatible dans les 5 secondes, wait_for_trigger terminé juste avant.
+# Les entités cover.* et les changements d'attribut sont exclus de ce fallback.
+# Replay aspirateur sans mock d'extracteur : PASS. Suite complète : 232/232 tests PASS.
+# Image privée dev.50 construite, publiée et manifeste OCI vérifié avant promotion.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 # La mémoire consciente reste isolée dans /data/conscious_memory.sqlite3.
 ingress: true
