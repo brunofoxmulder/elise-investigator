@@ -11,7 +11,7 @@ if str(APP) not in sys.path:
 class TestDev29Architecture(unittest.TestCase):
     def test_candidate_launcher_uses_current_wrapper(self):
         run_sh = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertIn("main_dev49.py", run_sh)
+        self.assertIn("main_dev50.py", run_sh)
         self.assertNotIn("main_mcp_inprocess.py", run_sh)
 
     def test_manual_investigate_endpoint_is_not_replaced_in_dev29_base(self):
@@ -80,6 +80,7 @@ class TestDev29Architecture(unittest.TestCase):
             "main_dev47.py",
             "main_dev48.py",
             "main_dev49.py",
+            "main_dev50.py",
             "memory_response_dev34.py",
             "memory_worker_dev34.py",
             "memory_worker_dev36.py",
@@ -92,6 +93,7 @@ class TestDev29Architecture(unittest.TestCase):
             "memory_worker_dev46.py",
             "memory_worker_dev48.py",
             "memory_worker_dev49.py",
+            "memory_worker_dev50.py",
             "mcp_targeted_trace_dev36.py",
             "request_journal_dev34.py",
             "runtime_decision.py",
@@ -104,6 +106,8 @@ class TestDev29Architecture(unittest.TestCase):
             "targeted_memory_enricher_dev45.py",
             "targeted_memory_enricher_dev48.py",
             "targeted_memory_enricher_dev49.py",
+            "targeted_memory_enricher_dev50.py",
+            "context_linked_effect_cause_dev50.py",
             "combined_trigger_condition_factors.py",
             "v02_investigator.py",
         )
