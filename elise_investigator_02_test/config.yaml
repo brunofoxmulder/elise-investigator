@@ -19,8 +19,10 @@ homeassistant_api: true
 # Le fallback reste borné : source exacte déjà prouvée, effet off↔on, action unique
 # sémantiquement compatible dans les 5 secondes, wait_for_trigger terminé juste avant.
 # Les entités cover.* et les changements d'attribut sont exclus de ce fallback.
-# Replay aspirateur sans mock d'extracteur : PASS. Suite complète : 232/232 tests PASS.
-# Image privée dev.50 construite, publiée et manifeste OCI vérifié avant promotion.
+# Replays causaux complets validés : aspirateur, Tineco, chargeur téléphone 2 ON/OFF
+# et yaourtière. Suite complète : 236/236 tests PASS.
+# Image privée dev.50 construite et publiée depuis le commit d3ba068078eaa5b28139d4cc7ed7115ff99534f6.
+# Manifeste OCI vérifié : sha256:fbdd63f0b247c9e2a59a6c2089cdc2cc61471a2f72956ddf5d499f360328ef2e.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 # La mémoire consciente reste isolée dans /data/conscious_memory.sqlite3.
 ingress: true
