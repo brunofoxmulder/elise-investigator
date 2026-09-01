@@ -1,21 +1,23 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.46"
+version: "0.2.0-dev.51"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev46-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev51-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# ROLLBACK TERRAIN 2026-09-01 : retour volontaire au dernier socle fonctionnel validé.
-# Code de référence : dev46-light-brightness-episodes
-# Commit : 1fa3e63852a3ce701b1f230fa0311942d7589d2f
-# Les dev.47 à dev.50 sont écartées de la recette terrain après régressions observées.
-# Dev.46 conserve la logique covers/volets validée et les épisodes brightness/lumières.
-# Image privée dev.46 déjà construite et publiée avec CI réussie.
+# ROLLBACK TERRAIN 2026-09-01 : dev.51 repackaging strict du dernier socle fonctionnel validé.
+# Runtime exécuté : main_dev46.py, sans modification de logique causale, cover, lumière,
+# mémoire ou enrichissement. Référence fonctionnelle : dev46-light-brightness-episodes
+# commit 1fa3e63852a3ce701b1f230fa0311942d7589d2f.
+# Les dev.47 à dev.50 restent écartées après régressions terrain.
+# Qualification dev.51 : compilation PASS, 209/209 tests PASS.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev51-private:0.2.0-dev.51
+# Manifeste OCI vérifié : sha256:f7abd849ebdfb70f40c1e8bd468f513b86a2a26d054f0878c0d9daa60a6bc835.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
