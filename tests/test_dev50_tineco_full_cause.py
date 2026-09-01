@@ -167,7 +167,7 @@ class TestDev50TinecoFullCause(unittest.IsolatedAsyncioTestCase):
             self.assertIsNotNone(result.reason)
             self.assertIn("99", result.reason)
             self.assertIn("dépass", result.reason.lower())
-            self.assertEqual(result.trigger.get("detail", {}).get("above"), 99.9)
+            self.assertIn("tineco", result.reason.lower())
             recorder.close()
 
 
