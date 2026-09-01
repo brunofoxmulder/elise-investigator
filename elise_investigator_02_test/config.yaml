@@ -1,30 +1,22 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.50"
+version: "0.2.0-dev.46"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev50-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev46-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.50 conserve intégralement les corrections dev.49 et la logique cover validée.
-# Correction ciblée REG-48-02 : lorsqu'un vrai changement primaire non-cover est déjà
-# relié par le contexte Home Assistant à une automation/script précise, Investigator
-# peut récupérer la cause depuis un wait_for_trigger imbriqué immédiatement avant
-# l'action d'effet dans la même séquence exécutée, y compris si la device action
-# n'expose pas l'entity_id canonique dans ses params runtime.
-# Le fallback reste borné : source exacte déjà prouvée, effet off↔on, action unique
-# sémantiquement compatible dans les 5 secondes, wait_for_trigger terminé juste avant.
-# Les entités cover.* et les changements d'attribut sont exclus de ce fallback.
-# Replays causaux complets validés : aspirateur, Tineco, chargeur téléphone 2 ON/OFF
-# et yaourtière. Suite complète : 236/236 tests PASS.
-# Image privée dev.50 construite et publiée depuis le commit d3ba068078eaa5b28139d4cc7ed7115ff99534f6.
-# Manifeste OCI vérifié : sha256:fbdd63f0b247c9e2a59a6c2089cdc2cc61471a2f72956ddf5d499f360328ef2e.
+# ROLLBACK TERRAIN 2026-09-01 : retour volontaire au dernier socle fonctionnel validé.
+# Code de référence : dev46-light-brightness-episodes
+# Commit : 1fa3e63852a3ce701b1f230fa0311942d7589d2f
+# Les dev.47 à dev.50 sont écartées de la recette terrain après régressions observées.
+# Dev.46 conserve la logique covers/volets validée et les épisodes brightness/lumières.
+# Image privée dev.46 déjà construite et publiée avec CI réussie.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
-# La mémoire consciente reste isolée dans /data/conscious_memory.sqlite3.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
