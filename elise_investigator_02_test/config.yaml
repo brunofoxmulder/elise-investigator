@@ -1,21 +1,23 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.47"
+version: "0.2.0-dev.48"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev47-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev48-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# Dev.47 conserve intégralement dev.46 et corrige uniquement la sélection des
-# questions génériques d'état allumé/éteint : un changement d'attribut ultérieur
-# comme brightness ne masque plus le dernier vrai changement d'état primaire.
-# Toute demande explicite d'attribut, de valeur ou d'heure conserve la sémantique
-# dev.46. Les entités cover.* sont exclues du nouveau sélecteur et conservent
-# strictement la logique validée par épisodes dev.45/dev.46.
+# Dev.48 conserve intégralement dev.47 et ajoute uniquement une seconde tentative
+# ciblée d'enrichissement lorsqu'un vrai changement primaire off↔on / on↔off
+# non-cover est déjà attribué à une automation/script mais garde reason=null.
+# Aucun élargissement de recherche causale : la même source déjà prouvée est relue
+# une seule fois après un court délai pour laisser la trace HA devenir exploitable.
+# Les changements d'attribut (dont brightness) sont exclus de ce retry.
+# Les entités cover.* sont totalement exclues et conservent strictement la logique
+# validée par épisodes dev.45/dev.46. Aucune interprétation métier n'est ajoutée.
 # Aucun nom d'automatisation/objet Maison Cognitive n'est codé en dur.
 # L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
 # La mémoire consciente reste isolée dans /data/conscious_memory.sqlite3.
