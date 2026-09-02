@@ -238,7 +238,7 @@ class TestDev54AssistSatelliteUserOrigin(unittest.IsolatedAsyncioTestCase):
             )
         )
 
-        rows = self.recorder.recent(entity_id="light.salon", limit=10)
+        rows = self.recorder.for_entity("light.salon", limit=10)
         primary = [row for row in rows if row.attribute is None]
         self.assertEqual(len(primary), 2)
         self.assertEqual({row.event_kind for row in primary}, {"turned_on", "turned_off"})
