@@ -45,3 +45,5 @@ jobs:
 
       - name: Verify published image manifest
         run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev55-private:0.2.0-dev.55
+
+# Candidate terrain dev.55 — déclenchement contrôlé après CI unitaire complète.
