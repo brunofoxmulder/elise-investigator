@@ -59,11 +59,12 @@ class TestDev29Architecture(unittest.TestCase):
             "main_dev57.py", "memory_response_dev34.py", "memory_worker_dev34.py", "memory_worker_dev36.py",
             "memory_worker_dev37.py", "memory_worker_dev38.py", "memory_worker_dev39.py", "memory_worker_dev43.py",
             "memory_worker_dev44.py", "memory_worker_dev45.py", "memory_worker_dev46.py", "memory_worker_dev54.py",
-            "memory_worker_dev55.py", "memory_worker_dev56.py", "mcp_targeted_trace_dev36.py", "request_journal_dev34.py",
-            "runtime_decision.py", "targeted_memory_enricher_dev36.py", "targeted_memory_enricher_dev37.py",
-            "targeted_memory_enricher_dev38.py", "targeted_memory_enricher_dev39.py", "targeted_memory_enricher_dev43.py",
-            "targeted_memory_enricher_dev44.py", "targeted_memory_enricher_dev45.py", "targeted_memory_enricher_dev56.py",
-            "native_activity_dev57.py", "combined_trigger_condition_factors.py", "v02_investigator.py",
+            "memory_worker_dev55.py", "memory_worker_dev56.py", "memory_worker_dev57.py", "mcp_targeted_trace_dev36.py",
+            "request_journal_dev34.py", "runtime_decision.py", "targeted_memory_enricher_dev36.py",
+            "targeted_memory_enricher_dev37.py", "targeted_memory_enricher_dev38.py", "targeted_memory_enricher_dev39.py",
+            "targeted_memory_enricher_dev43.py", "targeted_memory_enricher_dev44.py", "targeted_memory_enricher_dev45.py",
+            "targeted_memory_enricher_dev56.py", "targeted_memory_enricher_dev57.py",
+            "combined_trigger_condition_factors.py", "v02_investigator.py",
         )
         combined = "\n".join((APP / name).read_text(encoding="utf-8") for name in names)
         self.assertNotIn("supervisor/core/api/services", combined)
