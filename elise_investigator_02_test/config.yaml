@@ -1,21 +1,22 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.55"
+version: "0.2.0-dev.56"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev55-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev56-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.55 TERRAIN 2026-09-05 : causalité native Home Assistant d'abord.
-# Base exacte dev.54 validée ; repli officiel : dev54-fallback-stable.
-# Les interruptions unavailable/unknown ne remplacent plus un vrai changement fonctionnel.
-# Les volets conservent leurs épisodes opening/closing ; HA Voice dev.54 reste inchangé.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev55-private:0.2.0-dev.55
-# CI : 225/225 tests PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
+# DEV.56 TERRAIN 2026-09-05 : causalité native Logbook de premier niveau.
+# Base : dev.55 terrain figée au commit 16e3a911e8268aac4b76d074f88299c4c8324732.
+# Dev.55 conserve le filtrage unavailable/unknown et le dernier vrai changement fonctionnel.
+# Dev.56 promeut context_source/context_message lorsqu'une automation/script est confirmée mais reason resterait null.
+# Trace ciblée conservée pour temporisations, wait_for_trigger, choose/default, conditions et décisions runtime.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev56-private:0.2.0-dev.56
+# CI : tests + compilation PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
