@@ -1,26 +1,36 @@
 # Changelog
 
-## 0.2.0-dev.55 — candidate de refactoring natif HA, non déployée
+## 0.2.0-dev.56 — causalité native Logbook — candidate
+
+- Base exacte : dev.55 terrain figée au commit `16e3a911e8268aac4b76d074f88299c4c8324732`.
+- Conserve intégralement l'apport dev.55 sur les interruptions techniques `unknown` / `unavailable` et la sélection du dernier vrai changement fonctionnel.
+- Exploite désormais `context_source` puis `context_message` déjà fournis par le Logbook lorsque Home Assistant confirme une automation/script mais que l'enrichissement ciblé laisserait autrement `reason=null`.
+- Les formes natives `state of ...`, `numeric state of ...` et `device of ...` sont rendues en cause de premier niveau sans inventer la valeur de l'état, le seuil, la branche ni une temporisation absente de la preuve native.
+- Les triggers périodiques ou purement techniques (`time_pattern`, démarrage Home Assistant, etc.) ne sont pas promus artificiellement en raison fonctionnelle.
+- Les chemins existants de trace ciblée sont conservés pour l'approfondissement : `wait_for_trigger`, temporisation précise, branche `choose/default`, condition exécutée, variable runtime, cible calculée ou facteurs combinés.
+- Cas terrain prioritaires de recette : prise aspirateur et prise brosse à dents ; non-régression obligatoire : chargeur téléphone 2, lampe entrée, volet salon et commande utilisateur directe.
+- Lecture seule Home Assistant inchangée. Aucun merge automatique et aucune publication canal Test avant CI et recette terrain.
+
+## 0.2.0-dev.55 — filtrage fonctionnel des interruptions de disponibilité
 
 - Base exacte : dev.54 validée, commit `8fc625217dbc0284496ad435a2ea8d9e7fee46b9`.
 - Dev.54 est désormais le repli officiel via la branche figée `dev54-fallback-stable` ; aucun changement dev.55 ne doit être reporté sur cette branche.
 - Architecture confirmée : le chemin normal privilégie les primitives natives Home Assistant déjà capturées par Investigator (`Context`, `automation_triggered`, `call_service`, Logbook), puis une trace ciblée uniquement pour approfondir la raison fonctionnelle ; le journal SQLite reste la mémoire persistante.
 - La recherche inverse historique des automatisations/configurations ne fait pas partie du chemin conversationnel normal et reste réservée au diagnostic profond/fallback explicite.
 - Nouveau filtre fonctionnel générique pour `light`, `switch`, `input_boolean`, `fan` et `humidifier` : `on/off → unavailable → unknown → même état` est traité comme une interruption de disponibilité, pas comme un nouveau changement fonctionnel.
-- Si l’objet revient dans un état fonctionnel différent de celui qui précédait l’indisponibilité, le changement est conservé mais reste `indeterminate` : l’instant et la cause pendant l’interruption ne sont pas inventés.
-- Une récupération après redémarrage de l’App sans état fonctionnel antérieur connu est ignorée comme événement causal : comportement fail-closed.
-- Une perte de disponibilité casse explicitement un épisode brightness en cours afin d’éviter de propager une cause au-delà d’une discontinuité technique.
+- Si l'objet revient dans un état fonctionnel différent de celui qui précédait l'indisponibilité, le changement est conservé mais reste `indeterminate` : l'instant et la cause pendant l'interruption ne sont pas inventés.
+- Une récupération après redémarrage de l'App sans état fonctionnel antérieur connu est ignorée comme événement causal : comportement fail-closed.
+- Une perte de disponibilité casse explicitement un épisode brightness en cours afin d'éviter de propager une cause au-delà d'une discontinuité technique.
 - Les épisodes covers `opening/closing → open/closed`, les épisodes brightness dev.46 et la reconnaissance HA Voice `assist_satellite.*` de dev.54 restent inchangés.
 - Le statut runtime expose désormais la stratégie `native_ha_first_functional_memory`, les compteurs de transitions techniques filtrées et confirme `legacy_reverse_search_normal_path=false`.
-- Nouveaux tests dev.55 : `ON → unavailable → unknown → ON`, équivalent OFF, retour dans un état différent, récupération sans ancrage, non-régression cover et contrat d’architecture.
+- Nouveaux tests dev.55 : `ON → unavailable → unknown → ON`, équivalent OFF, retour dans un état différent, récupération sans ancrage, non-régression cover et contrat d'architecture.
 - Aucun service Home Assistant mutateur ajouté. Aucun déploiement ou mise à jour Home Assistant effectué par cette branche.
 
 ## 0.2.0-dev.54 — référence terrain et version de repli
 
-- Base reconstruite depuis la lignée stable dev.46, sans réintroduire les régressions dev.47–dev.53.
-- Ajout unique : reconnaissance d’une commande directe Home Assistant Voice `assist_satellite.*` comme origine générique `user` lorsqu’une lignée de Context la prouve.
-- Une automation ou un script déjà prouvé reste prioritaire et n’est jamais relabellisé `user`.
-- Aucune proximité temporelle seule n’est utilisée comme preuve HA Voice.
+- Ajout unique : reconnaissance d'une commande directe Home Assistant Voice `assist_satellite.*` comme origine générique `user` lorsqu'une lignée de Context la prouve.
+- Une automation ou un script déjà prouvé reste prioritaire et n'est jamais relabellisé `user`.
+- Aucune proximité temporelle seule n'est utilisée comme preuve HA Voice.
 - Logique lumière off↔on, épisodes brightness dev.46 et épisodes covers conservés.
 - Suite de qualification dev.54 : 215/215 tests PASS, tests HA Voice PASS, commande utilisateur existante PASS, lumière off↔on PASS, volets PASS, lecture seule PASS.
 - Image candidate : `ghcr.io/brunofoxmulder/elise-investigator-dev54-private:0.2.0-dev.54`.
@@ -30,14 +40,14 @@
 
 ## 0.2.0-dev.15
 
-- Version volontairement limitée au diagnostic et à l’observabilité : aucun changement du moteur causal ni de la logique de résolution.
-- Ajout d’un journal local persistant sous `/data/audit`, conservé 10 jours, plafonné en taille et nettoyé des secrets connus.
+- Version volontairement limitée au diagnostic et à l'observabilité : aucun changement du moteur causal ni de la logique de résolution.
+- Ajout d'un journal local persistant sous `/data/audit`, conservé 10 jours, plafonné en taille et nettoyé des secrets connus.
 - Chaque demande reçoit un `request_id` et des étapes de suivi `received`, `resolved`, `event_selected`, `completed` ou `error`.
-- Traçage du texte exact reçu, de la normalisation, des candidats et scores du résolveur, des filtres appliqués, de la requête réellement transmise au moteur, des événements History considérés et de l’événement finalement sélectionné.
-- Traçage de la réponse exacte, de sa longueur, du statut HTTP et des durées par étape afin d’identifier les troncatures, erreurs de résolution et timeouts.
-- Provenance factuelle des appels : `ingress_ui`, `api_ask`, `api_investigate` ou `unknown`, sans déduire abusivement qu’un appel API est forcément vocal.
-- Nouvelle vue Ingress « Dernières demandes » avec filtres, détail d’une requête et exports JSONL/TXT pour diagnostic externe.
-- Cas de tests ajoutés pour la résolution « lampe salle de bain » et pour la sélection d’un événement `closed` face à une ancienne ouverture.
+- Traçage du texte exact reçu, de la normalisation, des candidats et scores du résolveur, des filtres appliqués, de la requête réellement transmise au moteur, des événements History considérés et de l'événement finalement sélectionné.
+- Traçage de la réponse exacte, de sa longueur, du statut HTTP et des durées par étape afin d'identifier les troncatures, erreurs de résolution et timeouts.
+- Provenance factuelle des appels : `ingress_ui`, `api_ask`, `api_investigate` ou `unknown`, sans déduire abusivement qu'un appel API est forcément vocal.
+- Nouvelle vue Ingress « Dernières demandes » avec filtres, détail d'une requête et exports JSONL/TXT pour diagnostic externe.
+- Cas de tests ajoutés pour la résolution « lampe salle de bain » et pour la sélection d'un événement `closed` face à une ancienne ouverture.
 - Régression générale, certification permanente, contrat de sécurité/lecture seule et smoke test conteneur validés.
 - Image privée `0.2.0-dev.15` construite, publiée et vérifiée ; accès anonyme refusé.
 - Lecture seule Home Assistant, Ingress, AppArmor et port externe 8099 inchangés.
@@ -57,13 +67,13 @@
 ## 0.2.0-dev.13
 
 - Résolution conversationnelle française rendue plus naturelle sans LLM ni alias Maison Cognitive.
-- Les mots grammaticaux (`le`, `la`, `de`, `du`, `des`, etc.) sont neutralisés pour comparer la question au `friendly_name` Home Assistant tout en conservant l’ordre des mots.
+- Les mots grammaticaux (`le`, `la`, `de`, `du`, `des`, etc.) sont neutralisés pour comparer la question au `friendly_name` Home Assistant tout en conservant l'ordre des mots.
 - Exemples couverts : « volet du salon » → « Volet salon », « lampe du salon » → « Lampe salon », « prise de la télé » → « Prise télé », « chargeur du téléphone » → « Chargeur téléphone ».
-- Si l’objet Home Assistant est simplement « Frigo », « prise du frigo » peut résoudre « Frigo » lorsqu’aucun objet plus spécifique et non ambigu ne correspond.
-- Les noms plus spécifiques sont prioritaires ; les vrais doublons restent en erreur d’ambiguïté au lieu d’être devinés.
+- Si l'objet Home Assistant est simplement « Frigo », « prise du frigo » peut résoudre « Frigo » lorsqu'aucun objet plus spécifique et non ambigu ne correspond.
+- Les noms plus spécifiques sont prioritaires ; les vrais doublons restent en erreur d'ambiguïté au lieu d'être devinés.
 - Régression générale, certification permanente, contrat de sécurité/lecture seule et smoke test conteneur validés.
 - Image privée `0.2.0-dev.13` construite, publiée et vérifiée ; accès anonyme refusé.
-- Aucun changement du moteur causal, des niveaux `confirmed/probable/indeterminate`, des droits Home Assistant, d’Ingress, d’AppArmor ni du port externe 8099.
+- Aucun changement du moteur causal, des niveaux `confirmed/probable/indeterminate`, des droits Home Assistant, d'Ingress, d'AppArmor ni du port externe 8099.
 
 ## 0.2.0-dev.12
 

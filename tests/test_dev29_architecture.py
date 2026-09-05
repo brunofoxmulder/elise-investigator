@@ -11,7 +11,7 @@ if str(APP) not in sys.path:
 class TestDev29Architecture(unittest.TestCase):
     def test_candidate_launcher_uses_current_wrapper(self):
         run_sh = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertIn("main_dev55.py", run_sh)
+        self.assertTrue("main_dev55.py" in run_sh or "main_dev56.py" in run_sh)
         self.assertNotIn("main_dev54.py", run_sh)
         self.assertNotIn("main_mcp_inprocess.py", run_sh)
 
@@ -79,6 +79,7 @@ class TestDev29Architecture(unittest.TestCase):
             "main_dev46.py",
             "main_dev54.py",
             "main_dev55.py",
+            "main_dev56.py",
             "memory_response_dev34.py",
             "memory_worker_dev34.py",
             "memory_worker_dev36.py",
@@ -91,6 +92,7 @@ class TestDev29Architecture(unittest.TestCase):
             "memory_worker_dev46.py",
             "memory_worker_dev54.py",
             "memory_worker_dev55.py",
+            "memory_worker_dev56.py",
             "mcp_targeted_trace_dev36.py",
             "request_journal_dev34.py",
             "runtime_decision.py",
@@ -101,6 +103,7 @@ class TestDev29Architecture(unittest.TestCase):
             "targeted_memory_enricher_dev43.py",
             "targeted_memory_enricher_dev44.py",
             "targeted_memory_enricher_dev45.py",
+            "targeted_memory_enricher_dev56.py",
             "combined_trigger_condition_factors.py",
             "v02_investigator.py",
         )
