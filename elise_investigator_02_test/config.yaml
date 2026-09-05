@@ -1,22 +1,23 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.56"
+version: "0.2.0-dev.57"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev56-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev57-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.56 TERRAIN 2026-09-05 : causalité native Logbook de premier niveau.
-# Base : dev.55 terrain figée au commit 16e3a911e8268aac4b76d074f88299c4c8324732.
-# Dev.55 conserve le filtrage unavailable/unknown et le dernier vrai changement fonctionnel.
-# Dev.56 promeut context_source/context_message lorsqu'une automation/script est confirmée mais reason resterait null.
-# Trace ciblée conservée pour temporisations, wait_for_trigger, choose/default, conditions et décisions runtime.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev56-private:0.2.0-dev.56
-# CI : tests + compilation PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
+# DEV.57 TERRAIN : Home Assistant 2026.9 Activity devient la source causale primaire.
+# Sélection fonctionnelle héritée de dev.55 : unknown/unavailable ne remplacent pas le dernier vrai changement.
+# La ou les causes natives Activity/Logbook sont reprises telles que Home Assistant les expose.
+# Si Activity identifie l'automatisation mais omet la raison interne de l'action, seule la trace de cette exécution est consultée.
+# Aucun graphe causal ni recherche inverse générale n'est reconstruit.
+# Période de consultation cible : 12 h par défaut, réglable au niveau de la requête.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev57-private:0.2.0-dev.57
+# CI + build/push + vérification manifeste : PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
