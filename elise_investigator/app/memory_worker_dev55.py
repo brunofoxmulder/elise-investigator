@@ -7,6 +7,7 @@ from causal_recorder import CausalRecord, CausalRecorder
 from functional_events_dev55 import FunctionalStateTracker
 from memory_worker_dev34 import MEMORY_DOMAINS
 from memory_worker_dev54 import TargetedConsciousMemoryWorker as Dev54TargetedConsciousMemoryWorker
+from targeted_memory_enricher_dev55 import TargetedMemoryEnricher
 
 
 class TargetedConsciousMemoryWorker(Dev54TargetedConsciousMemoryWorker):
@@ -25,6 +26,12 @@ class TargetedConsciousMemoryWorker(Dev54TargetedConsciousMemoryWorker):
 
     def __init__(self, stream, recorder: CausalRecorder, enricher=None, **kwargs: Any):
         super().__init__(stream, recorder, enricher=enricher, **kwargs)
+        # Keep every dev.54/dev.45 proof path, but use the dev.55 targeted layer
+        # that can promote HA's own Logbook context_source when trace deepening
+        # cannot provide a richer semantic reason.
+        self.targeted = TargetedMemoryEnricher(
+            enricher.ha, enricher.investigator
+        ).bind_recorder(recorder)
         self._functional_states = FunctionalStateTracker()
         self.technical_state_events_suppressed = 0
         self.availability_recoveries_suppressed = 0
