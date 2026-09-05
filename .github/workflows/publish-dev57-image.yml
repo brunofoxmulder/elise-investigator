@@ -1,12 +1,13 @@
 name: Publish dev.57 private image
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - Tests
+    types:
+      - completed
     branches:
       - dev57-ha-activity-native
-    paths:
-      - '.github/workflows/publish-dev57-image.yml'
-      - 'elise_investigator/**'
   workflow_dispatch:
 
 permissions:
@@ -15,11 +16,16 @@ permissions:
 
 jobs:
   build-publish:
-    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/dev57-ha-activity-native'
+    if: >-
+      github.repository == 'brunofoxmulder/elise-investigator' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'dev57-ha-activity-native'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout dev.57
+      - name: Checkout tested dev.57 commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
