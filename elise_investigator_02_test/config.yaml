@@ -1,27 +1,21 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.54"
+version: "0.2.0-dev.55"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev54-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev55-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.54 TERRAIN 2026-09-02 : base exacte dev.46, ajout limité à l'origine HA Voice.
-# Runtime exact issu de la base dev.46
-# 1fa3e63852a3ce701b1f230fa0311942d7589d2f.
-# Home Assistant Voice assist_satellite.* est reconnu comme origine générique user,
-# exactement comme les commandes utilisateur Alexa/IHM existantes.
-# Une automation/script déjà établie reste automation/script et n'est jamais relabellisée user.
-# Logique lumières off↔on, brightness dev.46 et volets inchangée.
-# Qualification dev.54 : 215/215 tests PASS, HA Voice PASS, user existant PASS,
-# lumières off↔on PASS, non-régression volets PASS, lecture seule respectée.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev54-private:0.2.0-dev.54
-# Digest OCI : sha256:b7908b067357537acbd3037dd593fc34c02305320823a8414da1db56d8e29e85
-# L'App reste strictement en lecture seule vis-à-vis de Home Assistant.
+# DEV.55 TERRAIN 2026-09-05 : causalité native Home Assistant d'abord.
+# Base exacte dev.54 validée ; repli officiel : dev54-fallback-stable.
+# Les interruptions unavailable/unknown ne remplacent plus un vrai changement fonctionnel.
+# Les volets conservent leurs épisodes opening/closing ; HA Voice dev.54 reste inchangé.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev55-private:0.2.0-dev.55
+# CI : 225/225 tests PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
