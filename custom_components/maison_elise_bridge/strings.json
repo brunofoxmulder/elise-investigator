@@ -7,6 +7,13 @@
         "data": {
           "investigator_token": "Jeton API Élise Investigator"
         }
+      },
+      "reconfigure": {
+        "title": "Cloudhook Maison Élise",
+        "description": "Cette URL est le Cloudhook Nabu Casa actuellement utilisé par Maison Élise Bridge. Copie-la telle quelle dans CLOUDHOOK_URL du code de la skill Alexa. Toute modification saisie dans ce champ est ignorée par le Bridge.",
+        "data": {
+          "cloudhook_url": "Cloudhook Nabu Casa actuel"
+        }
       }
     },
     "error": {
@@ -16,7 +23,8 @@
       "supervisor_not_ready": "Le Supervisor Home Assistant n'est pas encore prêt. Réessaie dans un instant."
     },
     "abort": {
-      "already_configured": "Maison Élise Bridge est déjà configuré."
+      "already_configured": "Maison Élise Bridge est déjà configuré.",
+      "cloudhook_unchanged": "Le Cloudhook n'a pas été modifié."
     }
   }
 }
