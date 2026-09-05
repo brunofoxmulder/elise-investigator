@@ -19,9 +19,9 @@ class TestDev55Architecture(unittest.TestCase):
         self.assertTrue(issubclass(Dev55Worker, Dev54Worker))
         self.assertEqual(main_dev55.VERSION, "0.2.0-dev.55")
 
-    def test_runtime_keeps_dev55_or_layers_dev56_above_it(self):
+    def test_runtime_keeps_dev55_or_layers_newer_wrapper_above_it(self):
         run_sh = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertTrue("main_dev55.py" in run_sh or "main_dev56.py" in run_sh)
+        self.assertTrue(any(name in run_sh for name in ("main_dev55.py", "main_dev56.py", "main_dev57.py")))
 
     def test_app_changelog_contains_dev55_native_first_and_dev54_fallback(self):
         changelog = (ROOT / "elise_investigator_02_test" / "CHANGELOG.md").read_text(encoding="utf-8")
