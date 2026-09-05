@@ -13,6 +13,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONFIG_TEST_TIMEOUT_SECONDS,
+    CONF_CLOUDHOOK_URL,
     CONF_INVESTIGATOR_SLUG,
     CONF_INVESTIGATOR_TOKEN,
     CONF_WEBHOOK_ID,
@@ -30,7 +31,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 
 
 def _find_investigator_slug(apps: list[dict[str, Any]]) -> str | None:
-    """Return the installed Élise Investigator dev.12 app slug."""
+    """Return the installed Élise Investigator app slug."""
     for app in apps:
         slug = app.get("slug")
         if isinstance(slug, str) and (
@@ -104,4 +105,28 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Expose the active Cloudhook URL for safe copy from the Home Assistant UI."""
+        entry = self._get_reconfigure_entry()
+        cloudhook_url = str(entry.data.get(CONF_CLOUDHOOK_URL) or "").strip()
+
+        if user_input is not None:
+            # The displayed value is intentionally never written back from the form.
+            # The Bridge remains the sole source of truth for the active Cloudhook URL.
+            return self.async_abort(reason="cloudhook_unchanged")
+
+        return self.async_show_form(
+            step_id="reconfigure",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_CLOUDHOOK_URL,
+                        default=cloudhook_url,
+                    ): str,
+                }
+            ),
         )
