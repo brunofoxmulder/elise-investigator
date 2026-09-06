@@ -11,7 +11,7 @@ if str(APP) not in sys.path:
 class TestDev29Architecture(unittest.TestCase):
     def test_candidate_launcher_uses_current_wrapper(self):
         run_sh = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertTrue(any(name in run_sh for name in ("main_dev55.py", "main_dev56.py", "main_dev57.py")))
+        self.assertTrue(any(name in run_sh for name in ("main_dev55.py", "main_dev56.py", "main_dev57.py", "main_dev58.py")))
         self.assertNotIn("main_dev54.py", run_sh)
         self.assertNotIn("main_mcp_inprocess.py", run_sh)
 
@@ -56,7 +56,7 @@ class TestDev29Architecture(unittest.TestCase):
             "main_dev29.py", "main_dev30.py", "main_dev31.py", "main_dev32.py", "main_dev33.py", "main_dev34.py",
             "main_dev34_1.py", "main_dev36.py", "main_dev37.py", "main_dev38.py", "main_dev39.py", "main_dev43.py",
             "main_dev44.py", "main_dev45.py", "main_dev46.py", "main_dev54.py", "main_dev55.py", "main_dev56.py",
-            "main_dev57.py", "memory_response_dev34.py", "memory_worker_dev34.py", "memory_worker_dev36.py",
+            "main_dev57.py", "main_dev58.py", "memory_response_dev34.py", "memory_worker_dev34.py", "memory_worker_dev36.py",
             "memory_worker_dev37.py", "memory_worker_dev38.py", "memory_worker_dev39.py", "memory_worker_dev43.py",
             "memory_worker_dev44.py", "memory_worker_dev45.py", "memory_worker_dev46.py", "memory_worker_dev54.py",
             "memory_worker_dev55.py", "memory_worker_dev56.py", "memory_worker_dev57.py", "mcp_targeted_trace_dev36.py",
