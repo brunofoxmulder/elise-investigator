@@ -83,4 +83,6 @@ async def create_app() -> web.Application:
 
 
 if __name__ == "__main__":
+    # No behavior change: this commit only retriggers CI so the new publisher can
+    # build the exact green dev.58 commit through workflow_run.
     web.run_app(create_app(), host="0.0.0.0", port=8099, access_log=None)
