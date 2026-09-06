@@ -1,23 +1,26 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.58"
+version: "0.2.0-dev.59"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev58-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev59-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.58 TERRAIN : Home Assistant 2026.9 Activity reste la source causale primaire.
-# Sélection fonctionnelle héritée de dev.55 : unknown/unavailable ne remplacent pas le dernier vrai changement.
-# Correction dev.58 : pour une question d'état simple sur une lampe, un changement de luminosité ultérieur ne masque plus le dernier vrai OFF↔ON.
-# La ou les causes natives Activity/Logbook sont reprises telles que Home Assistant les expose.
-# Si Activity identifie l'automatisation mais omet la raison interne de l'action, seule la trace de cette exécution est consultée.
-# Aucun graphe causal ni recherche inverse générale n'est reconstruit.
-# Période de consultation cible : 12 h par défaut, réglable au niveau de la requête.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev58-private:0.2.0-dev.58
+# DEV.59 TERRAIN : simplification Activity-first pour Home Assistant 2026.9.
+# Le chemin normal "pourquoi" lit directement Activity/Logbook sur la période configurée.
+# unknown/unavailable sont ignorés uniquement comme bruit technique de sélection.
+# Le dernier événement Activity utile fournit directement l'origine et la cause natives HA.
+# Si une ligne terminale appartient au même court épisode Activity mais ne porte pas l'attribution,
+# la ligne Activity immédiatement précédente de cet épisode peut être retenue.
+# Si Activity identifie une automation/script mais ne donne pas assez de détail,
+# seule la trace de CETTE exécution identifiée est consultée.
+# Aucun graphe causal ni recherche inverse générale n'est reconstruit dans le chemin normal.
+# Période : 12 h par défaut, réglable via le réglage de rétention existant.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev59-private:0.2.0-dev.59
 # CI + build/push + vérification manifeste : PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
