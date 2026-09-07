@@ -1,28 +1,29 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.61"
+version: "0.2.0-dev.62"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev61-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev62-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.61 TERRAIN : Logbook/Activity identifie le fait et l'automatisation source ; la trace exacte explique l'action.
-# Le fait terminal (open/closed) reste le fait expliqué : il n'est jamais remplacé par opening/closing.
-# Pour un volet terminal sans attribution directe, seule la paire fonctionnelle adjacente opening->open ou closing->closed
-# peut fournir l'attribution portée par la ligne de mouvement ; aucune fenêtre temporelle arbitraire n'est utilisée.
-# Pour une automation/script identifiée, seule la trace exacte de CETTE exécution est consultée pour la raison fonctionnelle.
-# Un seul maillon amont est autorisé, uniquement si cette trace désigne explicitement une autre entité.
-# Ce maillon amont est lui-même résolu par Logbook + trace exacte, sans récursion ni graphe causal général.
-# Cas terrain de référence : T>28 C -> Gestion volet salon -> volet fermé -> Ambiance du jour -> lampe cuisine ON.
-# Une fermeture manuelle du volet reste une commande utilisateur et ne doit jamais être assimilée à cette chaîne automatisée.
-# Le context_source natif reste seulement un indice conservateur si la trace exacte n'ajoute aucune explication.
-# unknown/unavailable seuls sont filtrés ; période 12 h par défaut, réglable via le réglage de rétention existant.
-# Régressions couvertes : Tineco, aspirateur, chargeur casque, terminal volets, fermeture manuelle, chaîne volet->lampe.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev61-private:0.2.0-dev.61
+# DEV.62 TERRAIN : même architecture Logbook/Activity + trace exacte que dev.61.
+# Correction unique : si la trace exacte prouve une branche choose réellement sélectionnée,
+# contenant une seule condition supportée qui mène à l'action sur la cible, cette condition
+# devient la raison fonctionnelle avant le trigger technique de l'automatisation.
+# Cas terrain de référence : time pattern déclenche/réévalue Gestion volet salon, mais la
+# branche exécutée ferme le volet parce que la température extérieure dépasse 28 °C.
+# La réponse attendue est donc T>28 °C, jamais "triggered by time pattern" dans ce cas prouvé.
+# Si plusieurs conditions sont présentes ou si la branche/action n'est pas prouvée, aucune
+# condition métier n'est devinée : le comportement antérieur fail-closed est conservé.
+# Le fait terminal open/closed, la fermeture manuelle, le saut amont unique volet->lampe,
+# Tineco, aspirateur et chargeur casque restent couverts par les régressions antérieures.
+# Aucun graphe causal, aucune recherche inverse générale, aucune corrélation temporelle arbitraire.
+# unknown/unavailable seuls sont filtrés ; période 12 h par défaut, réglable.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev62-private:0.2.0-dev.62
 # CI + build/push + vérification manifeste : PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
