@@ -1,27 +1,28 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.60"
+version: "0.2.0-dev.61"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev60-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev61-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.60 TERRAIN : Activity HA reste la source principale ; pas de moteur causal reconstruit.
-# Le fait fonctionnel à expliquer reste le dernier vrai état Activity utile ; unknown/unavailable seuls sont filtrés.
-# L'attribution native automation/script prime sur un contexte utilisateur hérité lorsque Activity l'identifie ainsi.
-# Le fait (ex. closed) n'est plus remplacé par une ligne intermédiaire (ex. closing) seulement pour obtenir une attribution.
-# Une attribution portée par une autre ligne n'est reprise que via un lien de contexte HA explicite lorsqu'il est disponible.
-# context_message est traité comme explication native explicite ; context_source reste un indice de déclenchement.
-# Pour automation/script sans explication action-spécifique, seule la trace exacte de CETTE exécution est consultée.
-# Si la trace n'ajoute rien, le context_source natif peut rester l'indice conservateur (cas simple Tineco).
-# Aucun rapprochement temporel arbitraire de 60 s, aucun graphe causal, aucune recherche inverse générale.
-# Période : 12 h par défaut, réglable via le réglage de rétention existant.
-# Cas de régression : Tineco, prise aspirateur, chargeur casque/Bonne nuit, volet fermeture, volet ouverture/time pattern.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev60-private:0.2.0-dev.60
+# DEV.61 TERRAIN : Logbook/Activity identifie le fait et l'automatisation source ; la trace exacte explique l'action.
+# Le fait terminal (open/closed) reste le fait expliqué : il n'est jamais remplacé par opening/closing.
+# Pour un volet terminal sans attribution directe, seule la paire fonctionnelle adjacente opening->open ou closing->closed
+# peut fournir l'attribution portée par la ligne de mouvement ; aucune fenêtre temporelle arbitraire n'est utilisée.
+# Pour une automation/script identifiée, seule la trace exacte de CETTE exécution est consultée pour la raison fonctionnelle.
+# Un seul maillon amont est autorisé, uniquement si cette trace désigne explicitement une autre entité.
+# Ce maillon amont est lui-même résolu par Logbook + trace exacte, sans récursion ni graphe causal général.
+# Cas terrain de référence : T>28 C -> Gestion volet salon -> volet fermé -> Ambiance du jour -> lampe cuisine ON.
+# Une fermeture manuelle du volet reste une commande utilisateur et ne doit jamais être assimilée à cette chaîne automatisée.
+# Le context_source natif reste seulement un indice conservateur si la trace exacte n'ajoute aucune explication.
+# unknown/unavailable seuls sont filtrés ; période 12 h par défaut, réglable via le réglage de rétention existant.
+# Régressions couvertes : Tineco, aspirateur, chargeur casque, terminal volets, fermeture manuelle, chaîne volet->lampe.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev61-private:0.2.0-dev.61
 # CI + build/push + vérification manifeste : PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
