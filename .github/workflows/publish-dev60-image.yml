@@ -1,0 +1,53 @@
+name: Publish dev.60 private image
+
+on:
+  workflow_run:
+    workflows:
+      - Tests
+    types:
+      - completed
+    branches:
+      - dev60-activity-native-attribution
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-publish:
+    if: >-
+      github.repository == 'brunofoxmulder/elise-investigator' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'dev60-activity-native-attribution'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tested dev.60 commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish amd64 candidate image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./elise_investigator
+          file: ./elise_investigator/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/brunofoxmulder/elise-investigator-dev60-private:0.2.0-dev.60
+          build-args: |
+            BUILD_VERSION=0.2.0-dev.60
+            BUILD_ARCH=amd64
+
+      - name: Verify published image manifest
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev60-private:0.2.0-dev.60
