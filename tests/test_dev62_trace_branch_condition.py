@@ -160,7 +160,8 @@ class TestDev62TraceBranchCondition(unittest.IsolatedAsyncioTestCase):
         )
 
         self.assertIsNone(reason)
-        self.assertIsNone(cause)
+        self.assertEqual(cause["origin"], "automation_trigger")
+        self.assertEqual(cause["detail"]["platform"], "time_pattern")
 
 
 if __name__ == "__main__":
