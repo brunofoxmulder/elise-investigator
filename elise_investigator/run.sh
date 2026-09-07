@@ -1,4 +1,4 @@
 #!/usr/bin/with-contenv bashio
 set -e
 cd /app
-exec python3 main_dev59.py
+exec python3 main_dev60.py
