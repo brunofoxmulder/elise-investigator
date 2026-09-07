@@ -1,26 +1,27 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.59"
+version: "0.2.0-dev.60"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev59-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev60-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.59 TERRAIN : simplification Activity-first pour Home Assistant 2026.9.
-# Le chemin normal "pourquoi" lit directement Activity/Logbook sur la période configurée.
-# unknown/unavailable sont ignorés uniquement comme bruit technique de sélection.
-# Le dernier événement Activity utile fournit directement l'origine et la cause natives HA.
-# Si une ligne terminale appartient au même court épisode Activity mais ne porte pas l'attribution,
-# la ligne Activity immédiatement précédente de cet épisode peut être retenue.
-# Si Activity identifie une automation/script mais ne donne pas assez de détail,
-# seule la trace de CETTE exécution identifiée est consultée.
-# Aucun graphe causal ni recherche inverse générale n'est reconstruit dans le chemin normal.
+# DEV.60 TERRAIN : Activity HA reste la source principale ; pas de moteur causal reconstruit.
+# Le fait fonctionnel à expliquer reste le dernier vrai état Activity utile ; unknown/unavailable seuls sont filtrés.
+# L'attribution native automation/script prime sur un contexte utilisateur hérité lorsque Activity l'identifie ainsi.
+# Le fait (ex. closed) n'est plus remplacé par une ligne intermédiaire (ex. closing) seulement pour obtenir une attribution.
+# Une attribution portée par une autre ligne n'est reprise que via un lien de contexte HA explicite lorsqu'il est disponible.
+# context_message est traité comme explication native explicite ; context_source reste un indice de déclenchement.
+# Pour automation/script sans explication action-spécifique, seule la trace exacte de CETTE exécution est consultée.
+# Si la trace n'ajoute rien, le context_source natif peut rester l'indice conservateur (cas simple Tineco).
+# Aucun rapprochement temporel arbitraire de 60 s, aucun graphe causal, aucune recherche inverse générale.
 # Période : 12 h par défaut, réglable via le réglage de rétention existant.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev59-private:0.2.0-dev.59
+# Cas de régression : Tineco, prise aspirateur, chargeur casque/Bonne nuit, volet fermeture, volet ouverture/time pattern.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev60-private:0.2.0-dev.60
 # CI + build/push + vérification manifeste : PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
