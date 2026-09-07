@@ -17,7 +17,9 @@ from memory_selection_dev58 import find_best_functional
 class TestDev58FunctionalStateSelection(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.recorder = CausalRecorder(Path(self.tmp.name) / "memory.sqlite3", retention_hours=12)
+        # These tests validate selection semantics, not retention pruning. Keep a
+        # wider window so fixed terrain timestamps remain deterministic over time.
+        self.recorder = CausalRecorder(Path(self.tmp.name) / "memory.sqlite3", retention_hours=72)
 
     def tearDown(self):
         self.recorder.close()
