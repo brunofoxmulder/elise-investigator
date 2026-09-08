@@ -4,7 +4,7 @@ from aiohttp import web
 
 import main_dev63 as impl
 
-VERSION = "0.2.0-dev.64"
+VERSION = "0.2.0-dev.64.1"
 
 
 async def create_app() -> web.Application:
