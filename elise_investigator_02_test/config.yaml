@@ -1,5 +1,5 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.64"
+version: "0.2.0-dev.64.1"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
@@ -10,12 +10,12 @@ startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.64 TERRAIN : logique causale identique à dev.63 ; correction de packaging uniquement.
-# Le lancement passe par /usr/bin/with-contenv bashio afin que Home Assistant transmette
-# correctement SUPERVISOR_TOKEN au processus Python. Aucun changement du moteur causal.
-# Dev.63 avait échoué au démarrage avec "SUPERVISOR_TOKEN absent" lorsque Python était lancé directement.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64
-# Tests + build/push + vérification manifeste : PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
+# DEV.64.1 TERRAIN : logique causale identique à dev.63 ; correction de packaging uniquement.
+# Launcher dédié run_dev64.sh, invoqué explicitement par /usr/bin/with-contenv bashio.
+# Cela conserve SUPERVISOR_TOKEN sans exécuter directement le script, ce qui évite le Permission denied vu en dev.64.
+# Le publisher construit d'abord une image locale amd64 et vérifie le wrapper Home Assistant + launcher avant publication.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64.1
+# Tests + packaging checks + build/push + vérification manifeste : PASS. Lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
