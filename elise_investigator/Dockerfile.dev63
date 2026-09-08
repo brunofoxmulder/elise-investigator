@@ -1,0 +1,20 @@
+FROM ghcr.io/home-assistant/base:3.23
+
+ARG BUILD_VERSION
+ARG BUILD_ARCH
+
+RUN apk add --no-cache python3 py3-aiohttp
+
+COPY app /app
+
+WORKDIR /app
+ENV PYTHONPATH=/app
+
+LABEL \
+  io.hass.version="${BUILD_VERSION}" \
+  io.hass.type="app" \
+  io.hass.arch="${BUILD_ARCH}" \
+  org.opencontainers.image.title="Élise Investigator dev.63" \
+  org.opencontainers.image.description="Read-only Activity-first investigator for Home Assistant"
+
+CMD ["python3", "main_dev63.py"]
