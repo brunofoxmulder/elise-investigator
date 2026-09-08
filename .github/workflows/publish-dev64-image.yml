@@ -36,11 +36,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build local amd64 candidate for packaging checks
+        uses: docker/build-push-action@v6
+        with:
+          context: ./elise_investigator
+          file: ./elise_investigator/Dockerfile.dev64
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: elise-investigator-dev64:packaging-check
+          build-args: |
+            BUILD_VERSION=0.2.0-dev.64
+            BUILD_ARCH=amd64
+
+      - name: Validate launcher and Home Assistant env wrapper
+        run: |
+          docker run --rm --entrypoint /bin/sh elise-investigator-dev64:packaging-check -c 'test -r /run_dev64.sh && test -x /usr/bin/with-contenv && grep -q "exec python3 main_dev64.py" /run_dev64.sh'
+          docker inspect elise-investigator-dev64:packaging-check --format '{{json .Config.Cmd}}' | grep -q 'with-contenv'
+          docker inspect elise-investigator-dev64:packaging-check --format '{{json .Config.Cmd}}' | grep -q 'run_dev64.sh'
+
       - name: Build and publish amd64 candidate image
         uses: docker/build-push-action@v6
         with:
           context: ./elise_investigator
-          file: ./elise_investigator/Dockerfile.dev63
+          file: ./elise_investigator/Dockerfile.dev64
           platforms: linux/amd64
           push: true
           tags: ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64
