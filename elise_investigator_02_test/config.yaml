@@ -1,21 +1,23 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.65"
+version: "0.2.0-dev.66"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev65-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev66-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.65 TERRAIN : logique causale identique à dev.63/dev.64 ; correction de packaging/version uniquement.
-# Entrypoint dédié main_dev65.py, launcher dédié run_dev65.sh, Dockerfile dédié Dockerfile.dev65.
-# Lancement explicite via /usr/bin/with-contenv bashio /run_dev65.sh afin de conserver SUPERVISOR_TOKEN
-# sans dépendre du bit exécutable du launcher. Version entière suivante pour être correctement reconnue par HA.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev65-private:0.2.0-dev.65
-# Tests + packaging checks + build/push + vérification manifeste : PASS. Lecture seule vis-à-vis de Home Assistant.
+# DEV.66 TERRAIN : logique causale identique à dev.63/dev.64/dev.65 ; correction de packaging uniquement.
+# Entrypoint dédié main_dev66.py, launcher dédié run_dev66.sh, Dockerfile dédié Dockerfile.dev66.
+# Le launcher est rendu exécutable dans l'image par RUN chmod 0755 /run_dev66.sh.
+# Le publisher construit d'abord l'image locale, vérifie le bit exécutable, le wrapper with-contenv,
+# puis exécute réellement le launcher et refuse toute occurrence "Permission denied" avant publication.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev66-private:0.2.0-dev.66
+# Tests + packaging checks + exécution launcher + build/push + vérification manifeste : PASS.
+# App strictement en lecture seule vis-à-vis de Home Assistant. Dev.54 reste le fallback officiel.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
