@@ -11,7 +11,7 @@ from activity_reader_dev63 import ActivityTraceReader
 from conversation import ConversationResolutionError
 from ha_client import HomeAssistantError
 
-VERSION = "0.2.0-dev.63"
+VERSION = "0.2.0-dev.64"
 
 
 def _effect(record) -> str:
