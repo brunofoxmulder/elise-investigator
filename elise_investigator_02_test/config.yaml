@@ -1,22 +1,21 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.66"
+version: "0.2.0-dev.67"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev66-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev67-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.66 TERRAIN : logique causale identique à dev.63/dev.64/dev.65 ; correction de packaging uniquement.
-# Entrypoint dédié main_dev66.py, launcher dédié run_dev66.sh, Dockerfile dédié Dockerfile.dev66.
-# Le launcher est rendu exécutable dans l'image par RUN chmod 0755 /run_dev66.sh.
-# Le publisher construit d'abord l'image locale, vérifie le bit exécutable, le wrapper with-contenv,
-# puis exécute réellement le launcher et refuse toute occurrence "Permission denied" avant publication.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev66-private:0.2.0-dev.66
-# Tests + packaging checks + exécution launcher + build/push + vérification manifeste : PASS.
+# DEV.67 TERRAIN : logique causale identique à dev.63 ; retour au packaging exact réellement validé en dev.62.
+# Dockerfile générique dev.62 inchangé : COPY run.sh /run.sh ; RUN chmod 0755 /run.sh ; CMD ["/run.sh"].
+# run.sh conserve le shebang #!/usr/bin/with-contenv bashio et lance uniquement main_dev67.py.
+# Aucun Dockerfile.devXX ni run_devXX.sh n'est utilisé pour cette image.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev67-private:0.2.0-dev.67
+# Tests unitaires/digital-twin : PASS. Contrat packaging dev.62 vérifié : PASS. Build/push/manifeste : PASS.
 # App strictement en lecture seule vis-à-vis de Home Assistant. Dev.54 reste le fallback officiel.
 ingress: true
 ingress_port: 8099
