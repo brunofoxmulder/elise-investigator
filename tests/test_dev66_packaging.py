@@ -11,6 +11,7 @@ class Dev66PackagingTests(unittest.TestCase):
         self.assertIn("exec python3 main_dev66.py", launcher)
         self.assertIn("RUN chmod 0755 /run_dev66.sh", dockerfile)
         self.assertIn('CMD ["/usr/bin/with-contenv", "bashio", "/run_dev66.sh"]', dockerfile)
+        self.assertNotIn("run_dev65.sh", dockerfile)
         self.assertIn('VERSION = "0.2.0-dev.66"', entrypoint)
 
 if __name__ == "__main__":
