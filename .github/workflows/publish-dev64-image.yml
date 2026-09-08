@@ -46,7 +46,7 @@ jobs:
           push: false
           tags: elise-investigator-dev64:packaging-check
           build-args: |
-            BUILD_VERSION=0.2.0-dev.64
+            BUILD_VERSION=0.2.0-dev.64.1
             BUILD_ARCH=amd64
 
       - name: Validate launcher and Home Assistant env wrapper
@@ -62,10 +62,10 @@ jobs:
           file: ./elise_investigator/Dockerfile.dev64
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64
+          tags: ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64.1
           build-args: |
-            BUILD_VERSION=0.2.0-dev.64
+            BUILD_VERSION=0.2.0-dev.64.1
             BUILD_ARCH=amd64
 
       - name: Verify published image manifest
-        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64.1
