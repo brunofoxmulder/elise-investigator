@@ -1,20 +1,20 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.64.1"
+version: "0.2.0-dev.65"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev64-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev65-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.64.1 TERRAIN : logique causale identique à dev.63 ; correction de packaging uniquement.
-# Launcher dédié run_dev64.sh, invoqué explicitement par /usr/bin/with-contenv bashio.
-# Cela conserve SUPERVISOR_TOKEN sans exécuter directement le script, ce qui évite le Permission denied vu en dev.64.
-# Le publisher construit d'abord une image locale amd64 et vérifie le wrapper Home Assistant + launcher avant publication.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64.1
+# DEV.65 TERRAIN : logique causale identique à dev.63/dev.64 ; correction de packaging/version uniquement.
+# Entrypoint dédié main_dev65.py, launcher dédié run_dev65.sh, Dockerfile dédié Dockerfile.dev65.
+# Lancement explicite via /usr/bin/with-contenv bashio /run_dev65.sh afin de conserver SUPERVISOR_TOKEN
+# sans dépendre du bit exécutable du launcher. Version entière suivante pour être correctement reconnue par HA.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev65-private:0.2.0-dev.65
 # Tests + packaging checks + build/push + vérification manifeste : PASS. Lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
