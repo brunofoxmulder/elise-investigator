@@ -13,7 +13,7 @@ class Dev64PackagingTests(unittest.TestCase):
 
         self.assertIn("exec python3 main_dev64.py", launcher)
         self.assertIn('CMD ["/usr/bin/with-contenv", "bashio", "/run_dev64.sh"]', dockerfile)
-        self.assertIn('VERSION = "0.2.0-dev.64"', entrypoint)
+        self.assertIn('VERSION = "0.2.0-dev.64.1"', entrypoint)
         self.assertNotIn("run_dev63.sh", dockerfile)
 
 
