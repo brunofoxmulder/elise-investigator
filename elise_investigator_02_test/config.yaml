@@ -1,26 +1,20 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.63"
+version: "0.2.0-dev.64"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev63-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev64-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.63 TERRAIN : architecture légère inchangée — Activity/Logbook d'abord, trace exacte ensuite.
-# Corrections ciblées issues des défauts terrain dev.62 :
-# - reprendre une attribution native HA portée par une ligne Activity liée explicitement par context id/parent_id ;
-# - reconnaître le timeout d'un wait_for_trigger lorsqu'il libère directement l'action finale ;
-# - restituer 1 à 4 conditions state/numeric_state conjointes uniquement si la branche choisie et toutes
-#   les conditions sont prouvées vraies par la trace exacte et que l'action exécutée correspond à la cible.
-# Cas de référence : Yaourtière OFF attribuée à Aaaayaourt ; prise lampes évier OFF après timeout 4 h ;
-# chargeur téléphone ON par heures creuses + batterie basse ; repositionnement volet avec attribution native.
-# Fail closed si la trace est ambiguë ou non supportée. Aucun graphe causal, aucune corrélation temporelle large,
-# aucune recherche d'entités non liées. unknown/unavailable seuls sont filtrés ; période 12 h par défaut, réglable.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev63-private:0.2.0-dev.63
+# DEV.64 TERRAIN : logique causale identique à dev.63 ; correction de packaging uniquement.
+# Le lancement passe par /usr/bin/with-contenv bashio afin que Home Assistant transmette
+# correctement SUPERVISOR_TOKEN au processus Python. Aucun changement du moteur causal.
+# Dev.63 avait échoué au démarrage avec "SUPERVISOR_TOKEN absent" lorsque Python était lancé directement.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev64-private:0.2.0-dev.64
 # Tests + build/push + vérification manifeste : PASS. App strictement en lecture seule vis-à-vis de Home Assistant.
 ingress: true
 ingress_port: 8099
