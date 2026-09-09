@@ -1,0 +1,80 @@
+name: Publish dev.68 private image
+
+on:
+  workflow_run:
+    workflows:
+      - Tests
+    types:
+      - completed
+    branches:
+      - dev68-action-local-cause
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-publish:
+    if: >-
+      github.repository == 'brunofoxmulder/elise-investigator' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'dev68-action-local-cause'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tested dev.68 commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify exact dev62 packaging contract
+        run: |
+          grep -q 'COPY run.sh /run.sh' elise_investigator/Dockerfile
+          grep -q 'RUN chmod 0755 /run.sh' elise_investigator/Dockerfile
+          grep -q 'CMD \["/run.sh"\]' elise_investigator/Dockerfile
+          grep -q '^#!/usr/bin/with-contenv bashio$' elise_investigator/run.sh
+          grep -q 'exec python3 main_dev68.py' elise_investigator/run.sh
+          test ! -e elise_investigator/Dockerfile.dev68
+          test ! -e elise_investigator/run_dev68.sh
+
+      - name: Build local amd64 candidate
+        uses: docker/build-push-action@v6
+        with:
+          context: ./elise_investigator
+          file: ./elise_investigator/Dockerfile
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: elise-investigator-dev68:packaging-check
+          build-args: |
+            BUILD_VERSION=0.2.0-dev.68
+            BUILD_ARCH=amd64
+
+      - name: Verify built image command and launcher permissions
+        run: |
+          docker inspect elise-investigator-dev68:packaging-check --format '{{json .Config.Cmd}}' | grep -q '\["/run.sh"\]'
+          docker run --rm --entrypoint /bin/sh elise-investigator-dev68:packaging-check -c 'test -x /run.sh && head -n 1 /run.sh | grep -q "/usr/bin/with-contenv bashio" && grep -q "exec python3 main_dev68.py" /run.sh'
+
+      - name: Build and publish amd64 candidate image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./elise_investigator
+          file: ./elise_investigator/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/brunofoxmulder/elise-investigator-dev68-private:0.2.0-dev.68
+          build-args: |
+            BUILD_VERSION=0.2.0-dev.68
+            BUILD_ARCH=amd64
+
+      - name: Verify published image manifest
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-dev68-private:0.2.0-dev.68
