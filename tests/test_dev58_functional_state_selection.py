@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -13,14 +14,15 @@ if str(APP) not in sys.path:
 from causal_recorder import CausalRecord, CausalRecorder
 from memory_selection_dev58 import find_best_functional
 
+TEST_NOW = datetime.fromisoformat("2026-09-06T18:00:00+00:00")
+
 
 class TestDev58FunctionalStateSelection(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        # These tests validate selection semantics, not retention pruning. Keep a
-        # deliberately wide window so fixed terrain timestamps remain deterministic
-        # as the calendar advances.
-        self.recorder = CausalRecorder(Path(self.tmp.name) / "memory.sqlite3", retention_hours=720)
+        # These tests validate selection semantics, not retention pruning.
+        # Pin recorder time to the fixed fixture date so they never age out.
+        self.recorder = CausalRecorder(Path(self.tmp.name) / "memory.sqlite3", retention_hours=72)
 
     def tearDown(self):
         self.recorder.close()
@@ -39,7 +41,7 @@ class TestDev58FunctionalStateSelection(unittest.TestCase):
             source_name="Ambiance du soir - Allumage",
             reason="l'automatisation Ambiance du soir s'est déclenchée",
             confidence="confirmed",
-        ), now=None)
+        ), now=TEST_NOW)
         self.recorder.record(CausalRecord(
             entity_id="light.hue_tento_color_panel_1_3",
             entity_name="lampe salon",
@@ -50,7 +52,7 @@ class TestDev58FunctionalStateSelection(unittest.TestCase):
             attribute="brightness",
             origin_type="unknown",
             confidence="confirmed",
-        ), now=None)
+        ), now=TEST_NOW)
 
         item = find_best_functional(self.recorder, "light.hue_tento_color_panel_1_3")
         self.assertIsNotNone(item)
@@ -67,7 +69,7 @@ class TestDev58FunctionalStateSelection(unittest.TestCase):
             after_value="on",
             origin_type="user",
             confidence="confirmed",
-        ))
+        ), now=TEST_NOW)
         self.recorder.record(CausalRecord(
             entity_id="light.test",
             event_time="2026-09-06T17:55:00+00:00",
@@ -77,7 +79,7 @@ class TestDev58FunctionalStateSelection(unittest.TestCase):
             attribute="brightness",
             origin_type="unknown",
             confidence="confirmed",
-        ))
+        ), now=TEST_NOW)
 
         item = find_best_functional(self.recorder, "light.test", attribute="brightness")
         self.assertIsNotNone(item)
@@ -94,7 +96,7 @@ class TestDev58FunctionalStateSelection(unittest.TestCase):
             origin_type="automation",
             reason="fermeture solaire",
             confidence="confirmed",
-        ))
+        ), now=TEST_NOW)
         item = find_best_functional(self.recorder, "cover.volet_salon_2")
         self.assertIsNotNone(item)
         self.assertEqual(item.event_kind, "closed")
