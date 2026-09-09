@@ -18,8 +18,9 @@ class TestDev58FunctionalStateSelection(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         # These tests validate selection semantics, not retention pruning. Keep a
-        # wider window so fixed terrain timestamps remain deterministic over time.
-        self.recorder = CausalRecorder(Path(self.tmp.name) / "memory.sqlite3", retention_hours=72)
+        # deliberately wide window so fixed terrain timestamps remain deterministic
+        # as the calendar advances.
+        self.recorder = CausalRecorder(Path(self.tmp.name) / "memory.sqlite3", retention_hours=720)
 
     def tearDown(self):
         self.recorder.close()
