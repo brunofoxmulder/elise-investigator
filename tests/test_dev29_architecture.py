@@ -11,7 +11,7 @@ if str(APP) not in sys.path:
 class TestDev29Architecture(unittest.TestCase):
     def test_candidate_launcher_uses_current_wrapper(self):
         run_sh = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertTrue(any(name in run_sh for name in ("main_dev55.py", "main_dev56.py", "main_dev57.py", "main_dev58.py", "main_dev59.py", "main_dev60.py", "main_dev61.py", "main_dev62.py", "main_dev63.py", "main_dev64.py", "main_dev65.py", "main_dev66.py", "main_dev67.py", "main_dev68.py")))
+        self.assertTrue(any(name in run_sh for name in ("main_dev55.py", "main_dev56.py", "main_dev57.py", "main_dev58.py", "main_dev59.py", "main_dev60.py", "main_dev61.py", "main_dev62.py", "main_dev63.py", "main_dev64.py", "main_dev65.py", "main_dev66.py", "main_dev67.py", "main_dev68.py", "main_dev69.py")))
         self.assertNotIn("main_dev54.py", run_sh)
         self.assertNotIn("main_mcp_inprocess.py", run_sh)
 
