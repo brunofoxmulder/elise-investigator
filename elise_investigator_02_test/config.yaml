@@ -1,25 +1,29 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.69"
+version: "0.2.0-dev.70"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev69-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev70-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.69 TERRAIN : candidate consolidée issue de la recette naturelle dev.67 et de la correction bornée dev.68.
-# Objectifs causaux ciblés : actions finales/différées, conditions conjointement nécessaires, cause fonctionnelle avant trigger technique.
-# Préserver strictement les PASS dev.67 : Tineco batterie >99,9 %, chargeur téléphone OFF batterie >99 %, lampes simples/manuelles,
-# fermetures volets coucher du soleil, entrée OFF, et chaîne profonde lampe cuisine OFF <- ouverture volet <- conditions météo.
-# Aucun graphe, aucune corrélation temporelle générale, aucune recherche causale large. Fail closed si ambigu.
-# Présentation française et fonction « depuis quand ? » restent hors périmètre de cette candidate.
-# Packaging EXACT terrain dev.62/dev.67 : Dockerfile générique + /run.sh + chmod 0755 + CMD ["/run.sh"].
-# Aucun Dockerfile.dev69 ni run_dev69.sh. Image : ghcr.io/brunofoxmulder/elise-investigator-dev69-private:0.2.0-dev.69
+# DEV.70 TERRAIN : correction bornée issue de la recette naturelle dev.69.
+# 1) Conserve le vrai fait terminal open/closed mais écarte les refreshs successifs du même état quand la frontière fonctionnelle est visible.
+# 2) Permet au mouvement opening/closing du même épisode natif de porter l'attribution Activity.
+# 3) Si la trace exacte ne donne que time_pattern, préfère les conditions runtime prouvées de la branche exécutée contenant la commande cible.
+# 4) Conserve trigger state/numeric_state + conditions de branche lorsqu'ils sont conjointement nécessaires, ex. heures creuses + batterie basse.
+# 5) Conserve la logique dev.68 pour wait/delay/action finale. Fail closed si ambigu ou non prouvé.
+# Non-régressions : Tineco OFF >99,9 %, chargeur téléphone 2 OFF >99 %, entrée OFF, lampes simples/manuelles,
+# fermetures coucher du soleil et chaîne profonde lampe cuisine OFF <- ouverture volet <- conditions météo.
+# Présentation française, hiérarchisation cause/guards et fonction « depuis quand ? » restent hors périmètre.
+# Aucun graphe, aucune corrélation temporelle générale, aucune recherche causale large.
+# Packaging EXACT terrain dev.62/dev.67/dev.69 : Dockerfile générique + /run.sh + chmod 0755 + CMD ["/run.sh"].
+# Aucun Dockerfile.dev70 ni run_dev70.sh. Image : ghcr.io/brunofoxmulder/elise-investigator-dev70-private:0.2.0-dev.70
 # Tests unitaires/digital-twin : PASS. Contrat packaging : PASS. Build/push/manifeste : PASS.
-# Première validation terrain : démarrage HAOS + Ingress, puis recette au fil de l'eau. Lecture seule. Dev.54 reste le fallback officiel.
+# Le démarrage HAOS + Ingress reste à valider sur le terrain. Lecture seule. Dev.54 reste le fallback officiel.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
