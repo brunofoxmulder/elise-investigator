@@ -130,10 +130,12 @@ class Dev71CausalSemanticsTests(unittest.IsolatedAsyncioTestCase):
             "run-guard",
         )
 
-        self.assertIsNotNone(reason)
+        # time_pattern has no supported final human sentence: fail closed on wording,
+        # while retaining only the proven automation trigger in the compact proof.
+        self.assertIsNone(reason)
         self.assertIsNotNone(cause)
+        self.assertEqual(cause.get("origin"), "automation_trigger")
         self.assertNotIn("input_boolean.guard", str(cause))
-        self.assertNotEqual(cause.get("origin"), "executed_branch_conditions")
 
     async def test_proven_state_trigger_keeps_joint_required_condition(self):
         detail = {
