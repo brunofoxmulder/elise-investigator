@@ -45,8 +45,9 @@ class Dev69TerrainContractTests(unittest.TestCase):
         self.assertIn("RUN chmod 0755 /run.sh", dockerfile)
         self.assertIn('CMD ["/run.sh"]', dockerfile)
         self.assertIn("#!/usr/bin/with-contenv bashio", launcher)
-        self.assertIn("exec python3 main_dev69.py", launcher)
+        self.assertTrue(any(name in launcher for name in ("main_dev69.py", "main_dev70.py")))
         self.assertNotIn("run_dev69.sh", launcher)
+        self.assertNotIn("run_dev70.sh", launcher)
 
 
 if __name__ == "__main__":

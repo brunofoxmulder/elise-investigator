@@ -13,8 +13,11 @@ class Dev67PackagingTests(unittest.TestCase):
         self.assertIn("RUN chmod 0755 /run.sh", dockerfile)
         self.assertIn('CMD ["/run.sh"]', dockerfile)
         self.assertIn("#!/usr/bin/with-contenv bashio", launcher)
-        self.assertTrue(any(name in launcher for name in ("main_dev67.py", "main_dev68.py", "main_dev69.py")))
-        if "main_dev69.py" in launcher:
+        self.assertTrue(any(name in launcher for name in ("main_dev67.py", "main_dev68.py", "main_dev69.py", "main_dev70.py")))
+        if "main_dev70.py" in launcher:
+            entrypoint = (ROOT / "elise_investigator" / "app" / "main_dev70.py").read_text()
+            self.assertIn('VERSION = "0.2.0-dev.70"', entrypoint)
+        elif "main_dev69.py" in launcher:
             entrypoint = (ROOT / "elise_investigator" / "app" / "main_dev69.py").read_text()
             self.assertIn('VERSION = "0.2.0-dev.69"', entrypoint)
         elif "main_dev68.py" in launcher:
