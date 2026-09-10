@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from action_effect_cause import _executed_commands, _matches_effect
 from causal_utils import nodes, trace_detail
 from models import InvestigationResult
 from trace_final_action_dev63 import _supported_true_condition
-from action_effect_cause import _executed_commands, _matches_effect
 
 
 def _config_at_path(config: dict[str, Any], path: str) -> Any:
@@ -79,10 +79,10 @@ def _runtime_true(detail: dict[str, Any], path: str) -> dict[str, Any] | None:
 def select_executed_branch_conditions(result: InvestigationResult) -> dict[str, Any] | None:
     """Read proven conditions on the exact executed branch leading to the target action.
 
-    This is intentionally bounded: exactly one matching target command, only condition
-    paths that are ancestors/siblings inside that command's executed choose branch,
-    at most four supported conditions, and every returned condition must be runtime true.
-    No temporal correlation and no scan of unrelated automations/entities.
+    Bounded/fail-closed: exactly one matching target command; only conditions inside
+    choose branches structurally containing that command; maximum four conditions;
+    every ancestor branch condition must be supported and runtime true. No temporal
+    correlation and no scan of unrelated automations/entities.
     """
     if result.status != "confirmed" or result.cause.get("system_confirmed") is not True:
         return None
@@ -108,7 +108,7 @@ def select_executed_branch_conditions(result: InvestigationResult) -> dict[str, 
     if not command_path:
         return None
 
-    candidates: list[tuple[str, dict[str, Any]]] = []
+    ancestor_paths: list[str] = []
     for raw_path in trace:
         path = str(raw_path)
         marker = "/conditions/"
@@ -117,34 +117,24 @@ def select_executed_branch_conditions(result: InvestigationResult) -> dict[str, 
         branch_prefix, _, suffix = path.rpartition(marker)
         if not suffix.isdigit():
             continue
-        # The condition must belong to a choose branch that also contains the exact
-        # target command. Prefix comparison is structural, not temporal.
-        if not command_path.startswith(branch_prefix + "/"):
-            continue
-        config_condition = _config_at_path(config, path)
-        if not isinstance(config_condition, dict):
-            continue
-        runtime = _runtime_true(detail, path)
-        if not isinstance(runtime, dict):
-            continue
-        item = _supported_true_condition(config_condition, runtime)
-        if not item:
-            continue
-        item["path"] = path
-        candidates.append((path, item))
+        if command_path.startswith(branch_prefix + "/"):
+            ancestor_paths.append(path)
 
-    if not 1 <= len(candidates) <= 4:
+    if not 1 <= len(ancestor_paths) <= 4:
         return None
 
-    # Keep deterministic trace order and reject duplicates rather than inventing
-    # a hierarchy between identical evidence rows.
-    seen: set[str] = set()
     conditions: list[dict[str, Any]] = []
-    for path, item in sorted(candidates, key=lambda pair: pair[0]):
-        if path in seen:
-            continue
-        seen.add(path)
+    for path in sorted(set(ancestor_paths)):
+        config_condition = _config_at_path(config, path)
+        runtime = _runtime_true(detail, path)
+        if not isinstance(config_condition, dict) or not isinstance(runtime, dict):
+            return None
+        item = _supported_true_condition(config_condition, runtime)
+        if not item:
+            return None
+        item["path"] = path
         conditions.append(item)
+
     if not 1 <= len(conditions) <= 4:
         return None
 
