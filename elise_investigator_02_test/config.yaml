@@ -1,25 +1,24 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.71"
+version: "0.2.0-dev.72"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev71-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev72-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.71 TERRAIN : correctif ciblé de dev.70 KO terrain sur trois défauts génériques prouvés.
-# 1) Un hint Activity natif du type "triggered by state of ..." reste une preuve intermédiaire et ne devient jamais la réponse causale finale brute.
-# 2) Les conditions/guards ne sont plus promues automatiquement comme cause principale ; les causes conjointes restent conservées lorsqu'un trigger state/numeric_state est réellement prouvé.
-# 3) Un trigger initial n'est plus recyclé comme cause d'une action différée lorsqu'une barrière temporelle locale exécutée (delay, wait_for_trigger, timeout/wait_template) explique la séquence.
-# Bornes : aucun graphe causal, aucune corrélation temporelle large, aucune réécriture du moteur, fail closed si preuve locale insuffisante.
-# Non-régressions à préserver : unavailable/unknown, épisodes cover/volets, PASS dev.67 -> dev.70, Tineco, chargeurs, lampes simples/manuelles et chaînes profondes déjà validées.
-# Packaging terrain conservé : image privée amd64 + Dockerfile générique + /run.sh ; aucun launcher run_dev71.sh ni Dockerfile dédié.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev71-private:0.2.0-dev.71
-# CI et publication image : PASS. Démarrage HAOS + Ingress et recette fonctionnelle restent à valider sur le terrain.
-# Lecture seule. Dev.54 reste le fallback officiel intact.
+# DEV.72 TERRAIN : correction ciblée du chemin ha_logbook+exact_trace après KO terrain dev.71.
+# Cas reproduit : mouvement déclencheur + conditions state (prise ON, Mode Cinéma OFF) ; les conditions restent des guards et ne sont plus ajoutées à la cause humaine.
+# Les causes conjointes déjà validées restent conservées lorsqu'un seuil numeric_state fait partie de la conjonction prouvée (ex. heures creuses + batterie basse).
+# Garde-fous dev.71 conservés : provider text "triggered by state of..." non exposé, trigger initial non recyclé après barrière temporelle locale.
+# Non-régressions : unavailable/unknown, épisodes cover/volets, délais/waits/timeout, PASS historiques dev.67 -> dev.71.
+# Aucun graphe causal, aucune corrélation temporelle large, aucune connaissance spécifique Maison Cognitive ; fail closed si preuve insuffisante.
+# Packaging terrain : image privée amd64 + Dockerfile générique + /run.sh ; aucun run_dev72.sh ni Dockerfile dédié.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev72-private:0.2.0-dev.72
+# CI + image : PASS. Validation terrain requise avant toute promotion fonctionnelle. Lecture seule. Dev.54 reste le fallback officiel intact.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
