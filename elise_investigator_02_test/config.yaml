@@ -1,24 +1,25 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.72"
+version: "0.2.0-dev.73"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev72-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-dev73-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.72 TERRAIN : correction ciblée du chemin ha_logbook+exact_trace après KO terrain dev.71.
-# Cas reproduit : mouvement déclencheur + conditions state (prise ON, Mode Cinéma OFF) ; les conditions restent des guards et ne sont plus ajoutées à la cause humaine.
-# Les causes conjointes déjà validées restent conservées lorsqu'un seuil numeric_state fait partie de la conjonction prouvée (ex. heures creuses + batterie basse).
-# Garde-fous dev.71 conservés : provider text "triggered by state of..." non exposé, trigger initial non recyclé après barrière temporelle locale.
-# Non-régressions : unavailable/unknown, épisodes cover/volets, délais/waits/timeout, PASS historiques dev.67 -> dev.71.
-# Aucun graphe causal, aucune corrélation temporelle large, aucune connaissance spécifique Maison Cognitive ; fail closed si preuve insuffisante.
-# Packaging terrain : image privée amd64 + Dockerfile générique + /run.sh ; aucun run_dev72.sh ni Dockerfile dédié.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev72-private:0.2.0-dev.72
-# CI + image : PASS. Validation terrain requise avant toute promotion fonctionnelle. Lecture seule. Dev.54 reste le fallback officiel intact.
+# DEV.73 TERRAIN : firewall terminal contre le texte natif HA brut après KO terrain dev.72.
+# Cas reproduit : reason_code ha_2026_9_activity_native avec "triggered by state of binary_sensor.salle_de_bain_mouvement".
+# Correction : tout texte fournisseur commençant par "triggered by" est conservé comme preuve structurée mais interdit comme reason finale, quel que soit son reason_code.
+# L'exact trace garde la priorité et toute raison humaine prouvée reste inchangée ; sinon fail closed vers l'automation/script identifié sans inventer de cause.
+# Semantics dev.72 conservées : conditions state seules = guards, cause conjointe state + numeric_state conservée lorsqu'elle est prouvée.
+# Non-régressions : unavailable/unknown, épisodes cover/volets, délais/waits/timeout et PASS historiques.
+# Aucun graphe causal, aucune corrélation temporelle large, aucune connaissance spécifique Maison Cognitive.
+# Packaging terrain : image privée amd64 + Dockerfile générique + /run.sh ; aucun run_dev73.sh ni Dockerfile dédié.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-dev73-private:0.2.0-dev.73
+# CI + image : PASS. Validation terrain requise. Lecture seule. Dev.54 reste le fallback officiel intact.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
