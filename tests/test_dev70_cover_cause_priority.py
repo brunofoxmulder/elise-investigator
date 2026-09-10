@@ -141,11 +141,10 @@ class Dev70Tests(unittest.IsolatedAsyncioTestCase):
             _nested_detail(),
             "run-cover",
         )
-        # The outer state guard is intentionally unsupported by this fixture's label
-        # semantics, therefore dev70 must fail closed instead of pretending temperature
-        # alone is the whole explanation.
         self.assertIsNotNone(reason)
-        self.assertEqual(cause["origin"], "automation_trigger")
+        self.assertNotIn("time pattern", reason.lower())
+        self.assertIn("température extérieure", reason.lower())
+        self.assertEqual(cause["origin"], "executed_branch_conditions")
 
     async def test_state_trigger_can_join_proven_nested_battery_condition(self):
         detail = _nested_detail(
