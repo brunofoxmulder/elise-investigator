@@ -94,8 +94,8 @@ class TargetedMemoryEnricher(Dev70TargetedMemoryEnricher):
                 human_cause = self._combine_trigger_and_branch(trigger, branch)
 
         # Generic start-trigger fallback is permitted only when no action-local temporal
-        # release exists. If a delay/wait released the target, the initial trigger must
-        # not be reused as the cause of that later action.
+        # release exists. If execution crossed a delay/wait barrier, the initial trigger
+        # must not be recycled as the cause of a later action.
         if human_cause is None and select_adjacent_temporal_cause(result) is None:
             candidate = select_human_cause(result)
             if isinstance(candidate, dict):
@@ -123,11 +123,11 @@ class TargetedMemoryEnricher(Dev70TargetedMemoryEnricher):
 
     @staticmethod
     def _has_any_executed_temporal_barrier(result: InvestigationResult) -> bool:
-        """Fail closed against a stale automation-start trigger after an executed delay/wait.
+        """Fail closed against a stale automation-start trigger after an executed wait.
 
-        This intentionally does not claim that every temporal action caused the target;
-        it only blocks the unsafe fallback to the initial trigger when the trace proves
-        that execution crossed a temporal boundary somewhere before completion.
+        This deliberately does not claim that every temporal action caused the target;
+        it only blocks the unsafe fallback to the initial trigger when the exact trace
+        proves that execution crossed a temporal boundary before completion.
         """
         detail = next(
             (
@@ -146,7 +146,8 @@ class TargetedMemoryEnricher(Dev70TargetedMemoryEnricher):
 
         def walk(value: Any, path: str = "") -> bool:
             if isinstance(value, dict):
-                if ("delay" in value or "wait_for_trigger" in value) and path and trace.get(path):
+                temporal_keys = ("delay", "wait_for_trigger", "wait_template")
+                if any(key in value for key in temporal_keys) and path and trace.get(path):
                     return True
                 for key in ("actions", "action", "sequence"):
                     items = value.get(key)
