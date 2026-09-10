@@ -21,7 +21,7 @@ class TestDev55Architecture(unittest.TestCase):
 
     def test_runtime_keeps_dev55_or_layers_newer_wrapper_above_it(self):
         run_sh = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertTrue(any(name in run_sh for name in ("main_dev55.py", "main_dev56.py", "main_dev57.py", "main_dev58.py", "main_dev59.py", "main_dev60.py", "main_dev61.py", "main_dev62.py", "main_dev63.py", "main_dev64.py", "main_dev65.py", "main_dev66.py", "main_dev67.py", "main_dev68.py", "main_dev69.py", "main_dev70.py")))
+        self.assertTrue(any(name in run_sh for name in ("main_dev55.py", "main_dev56.py", "main_dev57.py", "main_dev58.py", "main_dev59.py", "main_dev60.py", "main_dev61.py", "main_dev62.py", "main_dev63.py", "main_dev64.py", "main_dev65.py", "main_dev66.py", "main_dev67.py", "main_dev68.py", "main_dev69.py", "main_dev70.py", "main_dev71.py")))
 
     def test_app_changelog_contains_dev55_native_first_and_dev54_fallback(self):
         changelog = (ROOT / "elise_investigator_02_test" / "CHANGELOG.md").read_text(encoding="utf-8")
