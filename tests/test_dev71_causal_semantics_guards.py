@@ -159,7 +159,7 @@ class Dev71CausalSemanticsTests(unittest.IsolatedAsyncioTestCase):
             },
         }
         helper = TargetedMemoryEnricher(_HA(), _TraceInvestigator())
-        _, _, cause = await helper._reason_from_detail(
+        reason, _, cause = await helper._reason_from_detail(
             _record("switch.telephone"),
             "automation.test",
             "Test",
@@ -168,9 +168,15 @@ class Dev71CausalSemanticsTests(unittest.IsolatedAsyncioTestCase):
             "run-joint",
         )
 
+        # The compact proof intentionally omits nested condition arrays. The conjunction
+        # is verified by its semantic origin plus the human sentence built from both
+        # proven atoms, matching the existing dev.68 presentation contract.
         self.assertIsNotNone(cause)
         self.assertEqual(cause.get("origin"), "trigger_plus_conditions")
-        self.assertEqual(cause["detail"]["conditions"][0]["entity_id"], "sensor.battery")
+        self.assertIsNotNone(reason)
+        self.assertIn("Heures creuses", reason)
+        self.assertIn("Batterie", reason)
+        self.assertIn(" et ", reason)
 
     def test_nested_delay_adjacent_to_target_is_action_local_cause(self):
         detail = {
