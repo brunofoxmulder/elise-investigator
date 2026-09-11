@@ -12,7 +12,10 @@ class Dev67PackagingTests(unittest.TestCase):
         self.assertIn("COPY run.sh /run.sh", dockerfile)
         self.assertIn("RUN chmod 0755 /run.sh", dockerfile)
         self.assertIn('CMD ["/run.sh"]', dockerfile)
-        supported = ("main_dev67.py", "main_dev68.py", "main_dev69.py", "main_dev70.py", "main_dev71.py", "main_dev72.py", "main_dev73.py")
+        supported = (
+            "main_dev67.py", "main_dev68.py", "main_dev69.py", "main_dev70.py",
+            "main_dev71.py", "main_dev72.py", "main_dev73.py", "main_v2_rc1.py",
+        )
         self.assertTrue(any(name in launcher for name in supported))
 
         expected_versions = {
@@ -23,6 +26,7 @@ class Dev67PackagingTests(unittest.TestCase):
             "main_dev71.py": "0.2.0-dev.71",
             "main_dev72.py": "0.2.0-dev.72",
             "main_dev73.py": "0.2.0-dev.73",
+            "main_v2_rc1.py": "0.3.0-rc.1",
         }
         selected = next(name for name in supported if name in launcher)
         entrypoint = (ROOT / "elise_investigator" / "app" / selected).read_text()
