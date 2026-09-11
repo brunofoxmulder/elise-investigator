@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 from action_effect_cause import _executed_commands
+from combined_trigger_condition_factors import combined_trigger_condition_factors
 from human_cause import _proven_start_trigger
 from models import InvestigationResult
 from trace_action_local_dev68 import (
@@ -39,13 +40,7 @@ def _same_value(actual: Any, expected: Any) -> bool:
 
 
 def _matches_effect_v2(command: dict[str, Any], result: InvestigationResult) -> bool:
-    """Match the executed command to the observed effect with cover-position semantics.
-
-    The historical matcher recognized a primary `cover=open` fact only when the service
-    was `open_cover`. Maison Cognitive's KLF200 automations legitimately use
-    `set_cover_position`, so the exact trace could contain the right command and still be
-    rejected. V2 accepts that service deterministically from its requested position.
-    """
+    """Match one executed command to the observed effect, including cover positions."""
     domain = result.entity_id.split(".", 1)[0]
     if command.get("domain") != domain:
         return False
@@ -80,8 +75,7 @@ def _matches_effect_v2(command: dict[str, Any], result: InvestigationResult) -> 
 
     if domain == "lock":
         return (after_text == "locked" and service == "lock") or (
-            after_text == "unlocked" and service == "unlock"
-        )
+            after_text == "unlocked" and service == "unlock")
     return False
 
 
@@ -121,17 +115,7 @@ def has_temporal_barrier_before_effect(
     result: InvestigationResult,
     command_path: str,
 ) -> bool:
-    """Return True only for an executed temporal barrier before the target command.
-
-    This is deliberately action-relative. A wait/delay that executes *after* the target
-    command cannot suppress the proven start trigger for that earlier command.
-
-    Supported structural scopes are intentionally conservative:
-    - top-level actions preceding the target top-level action;
-    - preceding siblings in the same executed choose/default sequence.
-    Unknown/nested shapes fail closed by not asserting a barrier here; action-local
-    selectors still get first priority in `resolve_cause`.
-    """
+    """Return True only for an executed temporal barrier before the target command."""
     detail = _trace_detail(result)
     if not isinstance(detail, dict):
         return False
@@ -146,13 +130,11 @@ def has_temporal_barrier_before_effect(
     target_top = int(top_match.group(1))
     actions = _top_actions(config)
 
-    # Any executed top-level temporal action with a lower action index is before target.
     for index in range(min(target_top, len(actions))):
         action = actions[index]
         if _is_temporal(action) and _executed(trace, f"action/{index}"):
             return True
 
-    # Same chosen sequence: only lower sequence indexes are before the target command.
     chosen = _CHOOSE_SEQ.match(command_path)
     if chosen:
         action_index, choice_index, target_seq = map(int, chosen.groups())
@@ -210,11 +192,45 @@ def _start_trigger_cause(result: InvestigationResult) -> dict[str, Any] | None:
     }
 
 
-def resolve_cause(result: InvestigationResult) -> dict[str, Any] | None:
-    """Choose one semantic cause for the exact observed target action.
+def _factor_conjunction(
+    result: InvestigationResult,
+    command_path: str,
+) -> dict[str, Any] | None:
+    detail = _trace_detail(result)
+    if not isinstance(detail, dict):
+        return None
+    factors = combined_trigger_condition_factors(detail, result.entity_id)
+    if len(factors) < 2:
+        return None
+    return {
+        "kind": "required_factors",
+        "origin": "proven_factor_conjunction",
+        "path": "runtime-proven-repeated-trigger-factors",
+        "command_path": command_path,
+        "proven": True,
+        "detail": {"factors": factors},
+    }
 
-    Readers provide evidence; this function alone chooses the causal semantic object.
-    It does not render text and it never uses native provider prose as a cause.
+
+def _local_release(result: InvestigationResult) -> dict[str, Any] | None:
+    for selector in (
+        select_completed_wait_cause,
+        select_wait_timeout_cause,
+        select_elapsed_delay_cause,
+        select_adjacent_temporal_cause,
+    ):
+        candidate = selector(result)
+        if isinstance(candidate, dict):
+            return candidate
+    return None
+
+
+def resolve_cause(result: InvestigationResult) -> dict[str, Any] | None:
+    """Choose one semantic cause object for the exact observed target action.
+
+    The object may be a proven conjunction or a short causal sequence, but the resolver
+    remains the single place where causal semantics are selected. Readers provide facts;
+    the renderer only verbalizes the selected object.
     """
     if result.status != "confirmed" or result.cause.get("system_confirmed") is not True:
         return None
@@ -228,19 +244,29 @@ def resolve_cause(result: InvestigationResult) -> dict[str, Any] | None:
     if not command_path:
         return None
 
-    # Strong action-local release semantics always win.
-    for selector in (
-        select_completed_wait_cause,
-        select_wait_timeout_cause,
-        select_elapsed_delay_cause,
-        select_adjacent_temporal_cause,
-    ):
-        candidate = selector(result)
-        if isinstance(candidate, dict):
-            return candidate
+    # A repeated-trigger conjunction is stronger than an ordinary true guard: every
+    # promoted factor must itself exist as a configured trigger and be runtime-proven.
+    root_conjunction = _factor_conjunction(result, command_path)
+    release = _local_release(result)
+    if isinstance(root_conjunction, dict) and isinstance(release, dict):
+        return {
+            "kind": "causal_sequence",
+            "origin": "causal_sequence",
+            "path": root_conjunction.get("path"),
+            "command_path": command_path,
+            "proven": True,
+            "detail": {
+                "factors": root_conjunction.get("detail", {}).get("factors", []),
+                "release": release,
+            },
+        }
+    if isinstance(release, dict):
+        return release
+    if isinstance(root_conjunction, dict):
+        return root_conjunction
 
-    # Preserve already validated threshold conjunctions only. Pure discrete state guards
-    # are evidence, not a human cause.
+    # Preserve already validated threshold conjunctions for the simpler top-level shape.
+    # Pure discrete state guards are evidence, not a human cause.
     combined = select_trigger_with_true_conditions(result)
     trigger = _proven_start_trigger(result)
     platform = str((trigger or {}).get("platform") or (trigger or {}).get("trigger") or "").casefold()
@@ -251,8 +277,8 @@ def resolve_cause(result: InvestigationResult) -> dict[str, Any] | None:
     ):
         return combined
 
-    # Crucial V2 rule: only a barrier that occurred BEFORE this exact command can block
-    # fallback to the start trigger. A later wait/delay is irrelevant to this effect.
+    # Only a barrier BEFORE this exact command can block fallback to the start trigger.
+    # A later wait/delay is irrelevant to the earlier effect.
     if has_temporal_barrier_before_effect(result, command_path):
         return None
 
