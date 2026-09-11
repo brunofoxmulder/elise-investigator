@@ -59,6 +59,50 @@ class CausalRendererV2:
         await self._label(cause)
         return human_cause_text(cause)
 
+    async def _factor_text(self, factor: dict[str, Any]) -> str | None:
+        kind = str(factor.get("kind") or "")
+        entity_id = factor.get("proof_entity_id")
+        if not entity_id:
+            return None
+        detail: dict[str, Any] = {"platform": kind, "entity_id": entity_id}
+        if kind == "state":
+            detail["to"] = factor.get("value")
+        elif kind == "numeric_state":
+            relation = str(factor.get("relation") or "")
+            if relation == "above":
+                detail["above"] = factor.get("threshold")
+            elif relation == "below":
+                detail["below"] = factor.get("threshold")
+            else:
+                return None
+            if factor.get("value") is not None:
+                detail["actual"] = factor.get("value")
+        else:
+            return None
+        return await self._atom_text(
+            {
+                "kind": "required_factor",
+                "origin": "required_factor",
+                "proven": True,
+                "detail": detail,
+            }
+        )
+
+    async def _factors_text(self, factors: list[dict[str, Any]]) -> str | None:
+        texts: list[str] = []
+        for factor in factors:
+            if not isinstance(factor, dict):
+                return None
+            text = await self._factor_text(factor)
+            if not text:
+                return None
+            texts.append(text.rstrip("."))
+        if len(texts) < 2:
+            return texts[0] if texts else None
+        if len(texts) == 2:
+            return f"{texts[0]} et {texts[1]}"
+        return ", ".join(texts[:-1]) + f" et {texts[-1]}"
+
     async def render(self, cause: dict[str, Any] | None) -> str | None:
         if not isinstance(cause, dict):
             return None
@@ -75,6 +119,19 @@ class CausalRendererV2:
                 duration = duration_text(detail.get("delay_seconds"))
             if duration:
                 return f"le délai de {duration} s'est écoulé"
+
+        if origin == "proven_factor_conjunction":
+            factors = detail.get("factors")
+            return await self._factors_text(factors) if isinstance(factors, list) else None
+
+        if origin == "causal_sequence":
+            factors = detail.get("factors")
+            release = detail.get("release")
+            factors_text = await self._factors_text(factors) if isinstance(factors, list) else None
+            release_text = await self.render(release) if isinstance(release, dict) else None
+            if factors_text and release_text:
+                return f"{factors_text}; puis {release_text}"
+            return factors_text or release_text
 
         if origin == "trigger_plus_conditions":
             trigger = detail.get("trigger")
