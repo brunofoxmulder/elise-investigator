@@ -48,6 +48,20 @@ class ActivityReaderV2ArchitectureTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(reader.trace_helper, TargetedMemoryEnricherV2)
         self.assertTrue(issubclass(ActivityTraceReaderV2, Dev63ActivityTraceReader))
 
+    async def test_v2_forces_legacy_upstream_hop_off(self):
+        record = _record(reason="un mouvement a été détecté", reason_code="v2_exact_trace")
+        reader = ActivityTraceReaderV2(_HA())
+        parent = AsyncMock(return_value=record)
+        with patch.object(Dev63ActivityTraceReader, "_record_from_entries", new=parent):
+            await reader._record_from_entries(
+                "light.test",
+                [],
+                end_time=datetime.now(timezone.utc),
+                hours=12,
+                allow_upstream=True,
+            )
+        self.assertFalse(parent.await_args.kwargs["allow_upstream"])
+
     async def test_raw_provider_trigger_text_is_suppressed_at_v2_boundary(self):
         record = _record(
             reason="triggered by state of binary_sensor.motion",
