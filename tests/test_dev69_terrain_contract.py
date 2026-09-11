@@ -45,7 +45,11 @@ class Dev69TerrainContractTests(unittest.TestCase):
         self.assertIn("RUN chmod 0755 /run.sh", dockerfile)
         self.assertIn('CMD ["/run.sh"]', dockerfile)
         self.assertIn("#!/usr/bin/with-contenv bashio", launcher)
-        self.assertTrue(any(name in launcher for name in ("main_dev69.py", "main_dev70.py", "main_dev71.py", "main_dev72.py", "main_dev73.py")))
+        supported = (
+            "main_dev69.py", "main_dev70.py", "main_dev71.py", "main_dev72.py",
+            "main_dev73.py", "main_v2_rc1.py",
+        )
+        self.assertTrue(any(name in launcher for name in supported))
         self.assertNotIn("run_dev69.sh", launcher)
         self.assertNotIn("run_dev70.sh", launcher)
         self.assertNotIn("run_dev71.sh", launcher)
