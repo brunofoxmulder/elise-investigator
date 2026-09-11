@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+import re
+from typing import Any
+
+from action_effect_cause import _executed_commands, _matches_effect
+from human_cause import _proven_start_trigger
+from models import InvestigationResult
+from trace_action_local_dev68 import (
+    select_completed_wait_cause,
+    select_elapsed_delay_cause,
+    select_trigger_with_true_conditions,
+)
+from trace_action_local_dev71 import select_adjacent_temporal_cause
+from trace_final_action_dev63 import select_wait_timeout_cause
+
+_TOP = re.compile(r"^action/(\d+)(?:/|$)")
+_CHOOSE_SEQ = re.compile(r"^action/(\d+)/choose/(\d+)/sequence/(\d+)(?:/|$)")
+_DEFAULT_SEQ = re.compile(r"^action/(\d+)/default/(\d+)(?:/|$)")
+_TEMPORAL_KEYS = ("delay", "wait_for_trigger", "wait_template")
+
+
+def _trace_detail(result: InvestigationResult) -> dict[str, Any] | None:
+    for evidence in result.evidence:
+        if evidence.kind == "trace" and isinstance(evidence.raw, dict):
+            return evidence.raw
+    return None
+
+
+def unique_effect_command(result: InvestigationResult) -> dict[str, Any] | None:
+    """Return the unique executed command that matches the observed target effect."""
+    detail = _trace_detail(result)
+    if not isinstance(detail, dict):
+        return None
+    matches = [
+        command
+        for command in _executed_commands(detail, result.entity_id)
+        if _matches_effect(command, result)
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
+def _executed(trace: dict[str, Any], path: str) -> bool:
+    value = trace.get(path)
+    if isinstance(value, list):
+        return bool(value)
+    return isinstance(value, dict) and bool(value)
+
+
+def _top_actions(config: dict[str, Any]) -> list[dict[str, Any]]:
+    for key in ("actions", "action", "sequence"):
+        raw = config.get(key)
+        if isinstance(raw, list):
+            return [item if isinstance(item, dict) else {} for item in raw]
+    return []
+
+
+def _is_temporal(action: dict[str, Any]) -> bool:
+    return any(key in action for key in _TEMPORAL_KEYS)
+
+
+def has_temporal_barrier_before_effect(
+    result: InvestigationResult,
+    command_path: str,
+) -> bool:
+    """Return True only for an executed temporal barrier before the target command.
+
+    This is deliberately action-relative. A wait/delay that executes *after* the target
+    command cannot suppress the proven start trigger for that earlier command.
+
+    Supported structural scopes are intentionally conservative:
+    - top-level actions preceding the target top-level action;
+    - preceding siblings in the same executed choose/default sequence.
+    Unknown/nested shapes fail closed by not asserting a barrier here; action-local
+    selectors still get first priority in `resolve_cause`.
+    """
+    detail = _trace_detail(result)
+    if not isinstance(detail, dict):
+        return False
+    config = detail.get("config")
+    trace = detail.get("trace")
+    if not isinstance(config, dict) or not isinstance(trace, dict):
+        return False
+
+    top_match = _TOP.match(command_path)
+    if not top_match:
+        return False
+    target_top = int(top_match.group(1))
+    actions = _top_actions(config)
+
+    # Any executed top-level temporal action with a lower action index is before target.
+    for index in range(min(target_top, len(actions))):
+        action = actions[index]
+        if _is_temporal(action) and _executed(trace, f"action/{index}"):
+            return True
+
+    # Same chosen sequence: only lower sequence indexes are before the target command.
+    chosen = _CHOOSE_SEQ.match(command_path)
+    if chosen:
+        action_index, choice_index, target_seq = map(int, chosen.groups())
+        if 0 <= action_index < len(actions):
+            choices = actions[action_index].get("choose")
+            if isinstance(choices, list) and 0 <= choice_index < len(choices):
+                choice = choices[choice_index]
+                sequence = choice.get("sequence") if isinstance(choice, dict) else None
+                if isinstance(sequence, list):
+                    for seq_index in range(min(target_seq, len(sequence))):
+                        item = sequence[seq_index]
+                        path = f"action/{action_index}/choose/{choice_index}/sequence/{seq_index}"
+                        if isinstance(item, dict) and _is_temporal(item) and _executed(trace, path):
+                            return True
+
+    default = _DEFAULT_SEQ.match(command_path)
+    if default:
+        action_index, target_seq = map(int, default.groups())
+        if 0 <= action_index < len(actions):
+            sequence = actions[action_index].get("default")
+            if isinstance(sequence, list):
+                for seq_index in range(min(target_seq, len(sequence))):
+                    item = sequence[seq_index]
+                    path = f"action/{action_index}/default/{seq_index}"
+                    if isinstance(item, dict) and _is_temporal(item) and _executed(trace, path):
+                        return True
+
+    return False
+
+
+def _has_numeric_condition(candidate: dict[str, Any] | None) -> bool:
+    if not isinstance(candidate, dict):
+        return False
+    detail = candidate.get("detail")
+    conditions = detail.get("conditions") if isinstance(detail, dict) else None
+    if not isinstance(conditions, list):
+        return False
+    return any(
+        isinstance(item, dict)
+        and str(item.get("platform") or item.get("condition") or "").casefold() == "numeric_state"
+        for item in conditions
+    )
+
+
+def _start_trigger_cause(result: InvestigationResult) -> dict[str, Any] | None:
+    trigger = _proven_start_trigger(result)
+    if not isinstance(trigger, dict) or not trigger:
+        return None
+    return {
+        "kind": "automation_trigger",
+        "origin": "automation_trigger",
+        "path": "trigger",
+        "proven": True,
+        "detail": dict(trigger),
+    }
+
+
+def resolve_cause(result: InvestigationResult) -> dict[str, Any] | None:
+    """Choose one semantic cause for the exact observed target action.
+
+    Readers provide evidence; this function alone chooses the causal semantic object.
+    It does not render text and it never uses native provider prose as a cause.
+    """
+    if result.status != "confirmed" or result.cause.get("system_confirmed") is not True:
+        return None
+    if result.cause.get("type") not in {"automation", "script"}:
+        return None
+
+    command = unique_effect_command(result)
+    if not isinstance(command, dict):
+        return None
+    command_path = str(command.get("path") or "")
+    if not command_path:
+        return None
+
+    # Strong action-local release semantics always win.
+    for selector in (
+        select_completed_wait_cause,
+        select_wait_timeout_cause,
+        select_elapsed_delay_cause,
+        select_adjacent_temporal_cause,
+    ):
+        candidate = selector(result)
+        if isinstance(candidate, dict):
+            return candidate
+
+    # Preserve already validated threshold conjunctions only. Pure discrete state guards
+    # are evidence, not a human cause.
+    combined = select_trigger_with_true_conditions(result)
+    trigger = _proven_start_trigger(result)
+    platform = str((trigger or {}).get("platform") or (trigger or {}).get("trigger") or "").casefold()
+    if (
+        isinstance(combined, dict)
+        and platform in {"state", "numeric_state"}
+        and _has_numeric_condition(combined)
+    ):
+        return combined
+
+    # Crucial V2 rule: only a barrier that occurred BEFORE this exact command can block
+    # fallback to the start trigger. A later wait/delay is irrelevant to this effect.
+    if has_temporal_barrier_before_effect(result, command_path):
+        return None
+
+    return _start_trigger_cause(result)
