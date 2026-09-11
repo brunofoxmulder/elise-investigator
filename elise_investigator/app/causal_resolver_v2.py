@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from action_effect_cause import _executed_commands, _matches_effect
+from action_effect_cause import _executed_commands
 from human_cause import _proven_start_trigger
 from models import InvestigationResult
 from trace_action_local_dev68 import (
@@ -27,6 +27,64 @@ def _trace_detail(result: InvestigationResult) -> dict[str, Any] | None:
     return None
 
 
+def _same_value(actual: Any, expected: Any) -> bool:
+    if actual is None or expected is None:
+        return False
+    if str(actual) == str(expected):
+        return True
+    try:
+        return abs(float(actual) - float(expected)) < 1e-9
+    except (TypeError, ValueError):
+        return False
+
+
+def _matches_effect_v2(command: dict[str, Any], result: InvestigationResult) -> bool:
+    """Match the executed command to the observed effect with cover-position semantics.
+
+    The historical matcher recognized a primary `cover=open` fact only when the service
+    was `open_cover`. Maison Cognitive's KLF200 automations legitimately use
+    `set_cover_position`, so the exact trace could contain the right command and still be
+    rejected. V2 accepts that service deterministically from its requested position.
+    """
+    domain = result.entity_id.split(".", 1)[0]
+    if command.get("domain") != domain:
+        return False
+    service = str(command.get("service") or "")
+    after = result.observed.get("after")
+    after_text = str(after).casefold() if after is not None else ""
+
+    if domain in {"light", "switch", "fan", "input_boolean"}:
+        return (after_text == "off" and service == "turn_off") or (
+            after_text == "on" and service == "turn_on"
+        )
+
+    if domain == "cover":
+        if service == "close_cover":
+            return after_text == "closed"
+        if service == "open_cover":
+            return after_text == "open"
+        if service == "set_cover_position":
+            data = command.get("data")
+            position = data.get("position") if isinstance(data, dict) else None
+            if result.observed.get("attribute") == "current_position":
+                return _same_value(position, after)
+            try:
+                numeric = float(position)
+            except (TypeError, ValueError):
+                return False
+            if after_text == "closed":
+                return abs(numeric) < 1e-9
+            if after_text == "open":
+                return numeric > 0
+        return False
+
+    if domain == "lock":
+        return (after_text == "locked" and service == "lock") or (
+            after_text == "unlocked" and service == "unlock"
+        )
+    return False
+
+
 def unique_effect_command(result: InvestigationResult) -> dict[str, Any] | None:
     """Return the unique executed command that matches the observed target effect."""
     detail = _trace_detail(result)
@@ -35,7 +93,7 @@ def unique_effect_command(result: InvestigationResult) -> dict[str, Any] | None:
     matches = [
         command
         for command in _executed_commands(detail, result.entity_id)
-        if _matches_effect(command, result)
+        if _matches_effect_v2(command, result)
     ]
     return matches[0] if len(matches) == 1 else None
 
