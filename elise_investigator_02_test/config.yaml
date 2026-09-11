@@ -1,25 +1,29 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.2.0-dev.73"
+version: "0.3.0-rc.1"
 slug: "elise_investigator_02_test"
-description: "Candidate privée de test HAOS pour Élise Investigator 0.2, strictement en lecture seule."
+description: "Candidate privée de test HAOS pour Élise Investigator, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-dev73-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc1-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# DEV.73 TERRAIN : firewall terminal contre le texte natif HA brut après KO terrain dev.72.
-# Cas reproduit : reason_code ha_2026_9_activity_native avec "triggered by state of binary_sensor.salle_de_bain_mouvement".
-# Correction : tout texte fournisseur commençant par "triggered by" est conservé comme preuve structurée mais interdit comme reason finale, quel que soit son reason_code.
-# L'exact trace garde la priorité et toute raison humaine prouvée reste inchangée ; sinon fail closed vers l'automation/script identifié sans inventer de cause.
-# Semantics dev.72 conservées : conditions state seules = guards, cause conjointe state + numeric_state conservée lorsqu'elle est prouvée.
-# Non-régressions : unavailable/unknown, épisodes cover/volets, délais/waits/timeout et PASS historiques.
-# Aucun graphe causal, aucune corrélation temporelle large, aucune connaissance spécifique Maison Cognitive.
-# Packaging terrain : image privée amd64 + Dockerfile générique + /run.sh ; aucun run_dev73.sh ni Dockerfile dédié.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-dev73-private:0.2.0-dev.73
-# CI + image : PASS. Validation terrain requise. Lecture seule. Dev.54 reste le fallback officiel intact.
+# V2 RC1 TERRAIN : refonte du moteur causal centrée sur l'action cible.
+# Une seule chaîne sémantique : preuves Activity/Logbook/trace -> résolveur V2 -> renderer V2 -> réponse.
+# Les barrières temporelles ne comptent que si elles précèdent réellement la commande cible.
+# Présence ON : un wait_for_trigger ultérieur ne masque plus le trigger mouvement initial.
+# Présence OFF : wait_for_trigger/délai local garde la priorité lorsqu'il libère l'action.
+# Volets : cover.set_cover_position est reconnu comme commande exacte selon la position/effect observé.
+# Causes conjointes prouvées conservées, dont heures creuses + seuil batterie ; guards simples non promus.
+# time_pattern rendu comme cause structurée lorsqu'il est le trigger réellement exécuté.
+# unavailable/unknown, commandes utilisateur et épisodes cover restent protégés par les non-régressions historiques.
+# Aucun texte natif HA brut "triggered by ..." n'est exposé comme raison finale.
+# Pas de graphe causal, pas de corrélation temporelle large, pas de règle spécifique à une entité Maison Cognitive.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc1-private:0.3.0-rc.1
+# CI complète + image privée amd64 + manifeste : PASS. Validation terrain requise.
+# Dev.54 reste le fallback officiel intact.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
