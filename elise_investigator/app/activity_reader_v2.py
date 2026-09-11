@@ -20,9 +20,11 @@ class ActivityTraceReaderV2(Dev63ActivityTraceReader):
     explicit HA context linkage and cover movement attribution are reused. The causal
     policy chain dev.68 -> dev.70 -> dev.71 -> dev.72 -> dev.73 is not inherited.
 
-    V2 adds only two evidence-boundary rules:
+    V2 adds only bounded evidence rules:
     - collapse newer same-functional-state refresh rows when a real boundary is visible;
-    - use TargetedMemoryEnricherV2 as the single trace semantic resolver/renderer.
+    - use TargetedMemoryEnricherV2 as the single trace semantic resolver/renderer;
+    - disable the legacy one-upstream-hop prose concatenation. Future upstream reasoning
+      must return structured evidence to the same resolver instead of mutating `reason`.
     """
 
     def __init__(self, ha, trace_investigator=None):
@@ -47,7 +49,8 @@ class ActivityTraceReaderV2(Dev63ActivityTraceReader):
             _functional_entries(entries, entity_id),
             end_time=end_time,
             hours=hours,
-            allow_upstream=allow_upstream,
+            # V2 forbids the legacy post-resolver text mutation performed by dev.61.
+            allow_upstream=False,
         )
         if record is None:
             return None
