@@ -1,26 +1,28 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.3.0-rc.2"
+version: "0.3.0-rc.3"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc2-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc3-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# V2 RC2 TERRAIN : RC1 conservée, avec extension strictement cover-only.
+# V2 RC3 TERRAIN : RC2 conservée, avec enrichissement strictement cover-only de la décision fonctionnelle.
 # Tous les chemins déjà validés restent inchangés : lampes, prises, Tineco, chargeurs, commandes utilisateur.
-# Volets : récupération de l'attribution depuis la ligne de mouvement adjacente quand un repositionnement partiel
-# finit en état HA open/closed sans contexte natif sur la ligne terminale.
-# Volets périodiques : lorsqu'un time_pattern prouvé mène à cover.set_cover_position, la position réellement
-# demandée est ajoutée à l'explication sans promouvoir les guards/conditions en fausses causes.
+# Volets : l'attribution des repositionnements partiels de RC2 est conservée.
+# Volets périodiques : la branche choose exacte contenant le cover.set_cover_position exécuté peut maintenant
+# fournir ses conditions numeric_state runtime-prouvées vraies : température, lux, azimut/élévation solaire, etc.
+# Les guards state/boolean restent des guards et ne sont jamais promus automatiquement comme causes.
+# Si la trace ne prouve aucun facteur de branche exploitable, le rendu RC2 (contrôle périodique + position demandée)
+# reste le fallback sans aucune inférence temporelle ou configuration-only.
 # Aucun traitement non-cover n'utilise cette extension ; les tests refusent explicitement les switches.
 # Une seule chaîne sémantique V2 reste active : preuves Activity/Logbook/trace -> résolveur V2 -> renderer V2.
 # Aucun texte natif HA brut "triggered by ..." n'est exposé comme raison finale.
 # Pas de graphe causal, pas de corrélation temporelle large, pas de règle spécifique à une entité Maison Cognitive.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc2-private:0.3.0-rc.2
+# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc3-private:0.3.0-rc.3
 # CI complète : PASS. Image privée amd64 + manifeste : PASS. Validation terrain requise.
 # Dev.54 reste le fallback officiel intact.
 ingress: true
