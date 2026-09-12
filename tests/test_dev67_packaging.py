@@ -15,6 +15,7 @@ class Dev67PackagingTests(unittest.TestCase):
         supported = (
             "main_dev67.py", "main_dev68.py", "main_dev69.py", "main_dev70.py",
             "main_dev71.py", "main_dev72.py", "main_dev73.py", "main_v2_rc1.py",
+            "main_v2_rc2.py",
         )
         self.assertTrue(any(name in launcher for name in supported))
 
@@ -27,6 +28,7 @@ class Dev67PackagingTests(unittest.TestCase):
             "main_dev72.py": "0.2.0-dev.72",
             "main_dev73.py": "0.2.0-dev.73",
             "main_v2_rc1.py": "0.3.0-rc.1",
+            "main_v2_rc2.py": "0.3.0-rc.2",
         }
         selected = next(name for name in supported if name in launcher)
         entrypoint = (ROOT / "elise_investigator" / "app" / selected).read_text()
