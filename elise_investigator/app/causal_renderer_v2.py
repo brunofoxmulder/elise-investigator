@@ -152,6 +152,26 @@ class CausalRendererV2:
             return f"{texts[0]} et {texts[1]}"
         return ", ".join(texts[:-1]) + f" et {texts[-1]}"
 
+    @staticmethod
+    def _runtime_inputs_text(inputs: dict[str, Any]) -> str | None:
+        """Render an evidence-only snapshot of a computed cover decision."""
+        parts: list[str] = []
+        if inputs.get("temperature") is not None:
+            parts.append(f"température {number_text(inputs['temperature'])} °C")
+        if inputs.get("azimuth") is not None:
+            parts.append(f"azimut {number_text(inputs['azimuth'])}°")
+        if inputs.get("elevation") is not None:
+            parts.append(f"élévation {number_text(inputs['elevation'])}°")
+        if inputs.get("lux") is not None:
+            parts.append(f"luminosité {number_text(inputs['lux'])} lx")
+        if not parts:
+            return None
+        if len(parts) == 1:
+            return parts[0]
+        if len(parts) == 2:
+            return f"{parts[0]} et {parts[1]}"
+        return ", ".join(parts[:-1]) + f" et {parts[-1]}"
+
     async def render(self, cause: dict[str, Any] | None) -> str | None:
         if not isinstance(cause, dict):
             return None
@@ -173,6 +193,7 @@ class CausalRendererV2:
             trigger = detail.get("trigger")
             position = detail.get("requested_position")
             factors = detail.get("decision_factors")
+            runtime_inputs = detail.get("runtime_inputs")
             if isinstance(trigger, dict) and position is not None:
                 trigger_text = self._time_pattern_text(trigger).rstrip(".")
                 try:
@@ -189,6 +210,16 @@ class CausalRendererV2:
                     return (
                         f"{factor_text}; lors du contrôle périodique, "
                         f"l'automatisation a demandé la position {position_text} %"
+                    )
+                runtime_text = (
+                    self._runtime_inputs_text(runtime_inputs)
+                    if isinstance(runtime_inputs, dict) and runtime_inputs
+                    else None
+                )
+                if runtime_text:
+                    return (
+                        f"lors du contrôle périodique, le calcul du volet a utilisé {runtime_text} "
+                        f"et a demandé la position {position_text} %"
                     )
                 return f"{trigger_text} et l'automatisation a demandé la position {position_text} %"
 
