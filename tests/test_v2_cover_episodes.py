@@ -72,6 +72,7 @@ class CoverEpisodeV2Tests(unittest.IsolatedAsyncioTestCase):
         result = InvestigationResult(
             status="confirmed",
             entity_id="cover.volet_salon_2",
+            entity_name="volet salon",
             event_type="opened",
             event_time="2026-09-12T11:10:15+00:00",
             observed={"after": "open"},
@@ -99,6 +100,7 @@ class CoverEpisodeV2Tests(unittest.IsolatedAsyncioTestCase):
         result = InvestigationResult(
             status="confirmed",
             entity_id="switch.test",
+            entity_name="switch test",
             event_type="turned_on",
             event_time="2026-09-12T11:10:15+00:00",
             observed={"after": "on"},
