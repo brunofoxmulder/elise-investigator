@@ -6,7 +6,7 @@ import main_dev63 as impl
 from activity_reader_v2 import ActivityTraceReaderV2
 from causal_response import answer_from_record
 
-VERSION = "0.3.0-rc.5"
+VERSION = "0.3.0-rc.5.1"
 
 
 def _answer_with_event_age(record) -> tuple[str, bool]:
