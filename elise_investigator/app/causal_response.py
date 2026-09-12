@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any
 
 from causal_recorder import CausalRecord
@@ -55,6 +56,37 @@ def _effect(record: CausalRecord) -> str:
     return f"Un changement de {label} a été enregistré"
 
 
+def _event_age(record: CausalRecord, *, now: datetime | None = None) -> str:
+    """Return a compact relative age for the observed HA event only.
+
+    This is deliberately presentation-only: it never changes or reinterprets
+    the stored causal reason. A delay mentioned by the cause (for example a
+    sunset offset or a no-motion wait) therefore remains independent from the
+    age of the resulting entity change.
+    """
+    try:
+        event_time = record.normalized_time()
+    except (TypeError, ValueError, AttributeError):
+        return ""
+
+    current = now or datetime.now(timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    current = current.astimezone(timezone.utc)
+
+    seconds = max(0, int((current - event_time).total_seconds()))
+    minutes = seconds // 60
+    if minutes < 1:
+        return "il y a moins d'une minute"
+    if minutes < 60:
+        return f"il y a {minutes} min"
+
+    hours, remaining_minutes = divmod(minutes, 60)
+    if remaining_minutes:
+        return f"il y a {hours} h {remaining_minutes} min"
+    return f"il y a {hours} h"
+
+
 def _because(reason: str) -> str:
     text = reason.strip().rstrip(".")
     if not text:
@@ -64,29 +96,31 @@ def _because(reason: str) -> str:
     return f"parce que {text}"
 
 
-def answer_from_record(record: CausalRecord) -> str:
+def answer_from_record(record: CausalRecord, *, now: datetime | None = None) -> str:
     """Render only the facts stored by the deterministic journal."""
     effect = _effect(record).rstrip(".")
+    age = _event_age(record, now=now)
+    effect_with_age = f"{effect} {age}" if age else effect
 
     if record.origin_type in {"automation", "script"} and record.reason:
         reason = _because(record.reason)
         if record.confidence == "confirmed":
-            return f"{effect} {reason}."
+            return f"{effect_with_age} {reason}."
         if record.confidence == "probable":
-            return f"{effect}. Cause probable : {record.reason.rstrip('.')} .".replace(" .", ".")
+            return f"{effect_with_age}. Cause probable : {record.reason.rstrip('.')} .".replace(" .", ".")
 
     if record.origin_type == "alexa" and record.confidence == "confirmed":
-        return f"{effect} à la suite d'une commande Alexa."
+        return f"{effect_with_age} à la suite d'une commande Alexa."
     if record.origin_type == "user" and record.confidence == "confirmed":
-        return f"{effect} à la suite d'une commande utilisateur Home Assistant."
+        return f"{effect_with_age} à la suite d'une commande utilisateur Home Assistant."
 
     if record.origin_type in {"automation", "script"} and record.confidence == "confirmed":
         return (
-            f"{effect}. Le journal confirme qu'une automatisation ou un script a provoqué ce changement, "
+            f"{effect_with_age}. Le journal confirme qu'une automatisation ou un script a provoqué ce changement, "
             "mais la raison fonctionnelle n'a pas pu être isolée avec certitude."
         )
 
     if record.confidence == "probable" and record.reason:
-        return f"{effect}. Cause probable : {record.reason.rstrip('.')} .".replace(" .", ".")
+        return f"{effect_with_age}. Cause probable : {record.reason.rstrip('.')} .".replace(" .", ".")
 
-    return f"{effect}. Le changement est enregistré, mais sa cause n'est pas établie."
+    return f"{effect_with_age}. Le changement est enregistré, mais sa cause n'est pas établie."
