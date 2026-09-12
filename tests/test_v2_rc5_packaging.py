@@ -13,7 +13,7 @@ from activity_reader_v2 import ActivityTraceReaderV2
 
 class V2RC5PackagingTests(unittest.TestCase):
     def test_candidate_version_and_reader(self):
-        self.assertEqual(main_v2_rc5.VERSION, "0.3.0-rc.5")
+        self.assertEqual(main_v2_rc5.VERSION, "0.3.0-rc.5.1")
         self.assertIs(main_v2_rc5.ActivityTraceReaderV2, ActivityTraceReaderV2)
 
     def test_generic_launcher_points_only_to_v2_rc5(self):
@@ -24,12 +24,12 @@ class V2RC5PackagingTests(unittest.TestCase):
 
     def test_manifest_version_matches_candidate(self):
         config = (ROOT / "elise_investigator" / "config.yaml").read_text(encoding="utf-8")
-        self.assertIn('version: "0.3.0-rc.5"', config)
+        self.assertIn('version: "0.3.0-rc.5.1"', config)
 
     def test_private_image_workflow_is_exactly_candidate_scoped(self):
         workflow = (ROOT / ".github" / "workflows" / "publish-v2-rc5-image.yml").read_text(encoding="utf-8")
         self.assertIn("candidate-v2-rc5", workflow)
-        self.assertIn("elise-investigator-v2-rc5-private:0.3.0-rc.5", workflow)
+        self.assertIn("elise-investigator-v2-rc5-private:0.3.0-rc.5.1", workflow)
         self.assertIn("platforms: linux/amd64", workflow)
 
     def test_rc5_does_not_touch_causal_resolver(self):
