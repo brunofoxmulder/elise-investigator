@@ -6,6 +6,7 @@ from typing import Any
 from causal_recorder import CausalRecord
 from causal_renderer_v2 import CausalRendererV2
 from causal_resolver_v2 import resolve_cause, unique_effect_command
+from cover_cause_v2 import periodic_position_decision
 from investigator import _extract_trace_start, _trace_run_id
 from models import Evidence, InvestigationResult
 from targeted_memory_enricher_dev36 import (
@@ -119,6 +120,21 @@ class TargetedMemoryEnricherV2(BaseTargetedMemoryEnricher):
         cause = resolve_cause(result)
         if not isinstance(cause, dict):
             return None, run_id, None
+
+        # Cover-only informational refinement. Keep the V2 resolver's proven trigger,
+        # but when that trigger is periodic and the exact action is set_cover_position,
+        # include the requested position. This does not promote branch guards to causes
+        # and does not change any non-cover causal path.
+        if (
+            result.entity_id.startswith("cover.")
+            and str(cause.get("origin") or "") == "automation_trigger"
+        ):
+            command = unique_effect_command(result)
+            trigger = cause.get("detail") if isinstance(cause.get("detail"), dict) else None
+            enriched = periodic_position_decision(result, command or {}, trigger)
+            if isinstance(enriched, dict):
+                cause = enriched
+
         text = await self.renderer.render(cause)
         if not text:
             return None, run_id, _compact_human_cause(cause)

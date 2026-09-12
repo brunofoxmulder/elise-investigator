@@ -120,6 +120,18 @@ class CausalRendererV2:
             if duration:
                 return f"le délai de {duration} s'est écoulé"
 
+        if origin == "cover_periodic_position":
+            trigger = detail.get("trigger")
+            position = detail.get("requested_position")
+            if isinstance(trigger, dict) and position is not None:
+                trigger_text = self._time_pattern_text(trigger).rstrip(".")
+                try:
+                    numeric = float(position)
+                    position_text = str(int(numeric)) if numeric.is_integer() else str(numeric)
+                except (TypeError, ValueError):
+                    return None
+                return f"{trigger_text} et l'automatisation a demandé la position {position_text} %"
+
         if origin == "proven_factor_conjunction":
             factors = detail.get("factors")
             return await self._factors_text(factors) if isinstance(factors, list) else None
