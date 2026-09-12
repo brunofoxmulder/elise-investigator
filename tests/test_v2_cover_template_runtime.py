@@ -106,9 +106,9 @@ class CoverRuntimeTemplateTests(unittest.IsolatedAsyncioTestCase):
             {"platform": "time_pattern", "minutes": "/10"},
         )
         text = await CausalRendererV2(_HA()).render(cause)
-        self.assertIn("température 26.7 °C", text)
-        self.assertIn("azimut 171.3°", text)
-        self.assertIn("élévation 42.1°", text)
+        self.assertIn("température 26,7 °C", text)
+        self.assertIn("azimut 171,3°", text)
+        self.assertIn("élévation 42,1°", text)
         self.assertIn("luminosité 12340 lx", text)
         self.assertIn("position 80 %", text)
 
