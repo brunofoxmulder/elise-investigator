@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from causal_utils import duration_text
+from causal_utils import duration_text, number_text
 from trigger_semantics import human_cause_text
 
 
@@ -103,6 +103,55 @@ class CausalRendererV2:
             return f"{texts[0]} et {texts[1]}"
         return ", ".join(texts[:-1]) + f" et {texts[-1]}"
 
+    @staticmethod
+    def _solar_attribute_text(detail: dict[str, Any]) -> str | None:
+        attribute = str(detail.get("attribute") or "").casefold()
+        if attribute not in {"azimuth", "elevation"}:
+            return None
+        subject = "l’azimut solaire" if attribute == "azimuth" else "l’élévation solaire"
+        above = detail.get("above")
+        below = detail.get("below")
+        if above is not None and below is not None:
+            return (
+                f"{subject} était compris entre {number_text(above)}° et "
+                f"{number_text(below)}°"
+            )
+        if above is not None:
+            return f"{subject} dépassait {number_text(above)}°"
+        if below is not None:
+            return f"{subject} était inférieur à {number_text(below)}°"
+        return None
+
+    async def _cover_condition_text(self, condition: dict[str, Any]) -> str | None:
+        if not isinstance(condition, dict):
+            return None
+        if str(condition.get("platform") or "").casefold() != "numeric_state":
+            return None
+        solar = self._solar_attribute_text(condition)
+        if solar:
+            return solar
+        atom = {
+            "kind": "cover_decision_factor",
+            "origin": "cover_decision_factor",
+            "proven": True,
+            "detail": dict(condition),
+        }
+        return await self._atom_text(atom)
+
+    async def _cover_conditions_text(self, conditions: list[dict[str, Any]]) -> str | None:
+        texts: list[str] = []
+        for condition in conditions:
+            text = await self._cover_condition_text(condition)
+            if text:
+                texts.append(text.rstrip("."))
+        if not texts:
+            return None
+        if len(texts) == 1:
+            return texts[0]
+        if len(texts) == 2:
+            return f"{texts[0]} et {texts[1]}"
+        return ", ".join(texts[:-1]) + f" et {texts[-1]}"
+
     async def render(self, cause: dict[str, Any] | None) -> str | None:
         if not isinstance(cause, dict):
             return None
@@ -123,6 +172,7 @@ class CausalRendererV2:
         if origin == "cover_periodic_position":
             trigger = detail.get("trigger")
             position = detail.get("requested_position")
+            factors = detail.get("decision_factors")
             if isinstance(trigger, dict) and position is not None:
                 trigger_text = self._time_pattern_text(trigger).rstrip(".")
                 try:
@@ -130,6 +180,16 @@ class CausalRendererV2:
                     position_text = str(int(numeric)) if numeric.is_integer() else str(numeric)
                 except (TypeError, ValueError):
                     return None
+                factor_text = (
+                    await self._cover_conditions_text(factors)
+                    if isinstance(factors, list) and factors
+                    else None
+                )
+                if factor_text:
+                    return (
+                        f"{factor_text}; lors du contrôle périodique, "
+                        f"l'automatisation a demandé la position {position_text} %"
+                    )
                 return f"{trigger_text} et l'automatisation a demandé la position {position_text} %"
 
         if origin == "proven_factor_conjunction":
