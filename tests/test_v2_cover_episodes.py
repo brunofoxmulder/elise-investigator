@@ -250,7 +250,7 @@ class CoverEpisodeV2Tests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("l’azimut solaire était compris entre 54° et 165°", text)
         self.assertIn("l’élévation solaire dépassait 0°", text)
         self.assertIn("Éclairement", text)
-        self.assertIn("15 000 lx", text)
+        self.assertIn("15000 lx", text)
         self.assertIn("position 30 %", text)
 
     def test_periodic_position_extension_refuses_switches(self):
