@@ -27,7 +27,7 @@ class TestDev55Architecture(unittest.TestCase):
             "main_dev63.py", "main_dev64.py", "main_dev65.py", "main_dev66.py",
             "main_dev67.py", "main_dev68.py", "main_dev69.py", "main_dev70.py",
             "main_dev71.py", "main_dev72.py", "main_dev73.py", "main_v2_rc1.py",
-            "main_v2_rc2.py", "main_v2_rc3.py",
+            "main_v2_rc2.py", "main_v2_rc3.py", "main_v2_rc4.py",
         )
         self.assertTrue(any(name in run_sh for name in supported))
 
