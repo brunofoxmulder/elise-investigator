@@ -9,6 +9,7 @@ from models import InvestigationResult
 _COVER_CHOOSE_COMMAND = re.compile(
     r"^action/(\d+)/choose/(\d+)/sequence/(\d+)(?:/|$)"
 )
+_TOP_ACTION = re.compile(r"^action/(\d+)(?:/|$)")
 
 
 def _trace_detail(result: InvestigationResult) -> dict[str, Any] | None:
@@ -164,6 +165,98 @@ def cover_branch_numeric_factors(
     return factors
 
 
+def _number(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _semantic_variable_name(name: str) -> str | None:
+    """Map generic cover-calculation variable names to stable semantic fields."""
+    key = name.casefold().strip()
+    if "temperature" in key:
+        return "temperature"
+    if "azimut" in key or "azimuth" in key:
+        return "azimuth"
+    if "elevation" in key:
+        return "elevation"
+    if "luminos" in key or key == "lux" or key.endswith("_lux"):
+        return "lux"
+    if "position" in key and ("corrig" in key or "correct" in key):
+        return "corrected_position"
+    if "position" in key and ("brut" in key or "raw" in key):
+        return "raw_position"
+    return None
+
+
+def cover_runtime_template_inputs(
+    result: InvestigationResult,
+    command: dict[str, Any],
+) -> dict[str, float]:
+    """Recover runtime values used by a top-level cover calculation before the command.
+
+    Home Assistant traces expose rendered variables through ``changed_variables`` on an
+    executed ``variables`` action.  This helper is intentionally evidence-only: it does
+    not parse Jinja, infer a branch from configuration, or read current sensor states.
+    It accepts only semantic numeric values actually present in the exact trace before
+    the unique ``cover.set_cover_position`` command, and requires the traced calculated
+    position to agree with the executed command when such a value is available.
+    """
+    if result.entity_id.split(".", 1)[0] != "cover":
+        return {}
+    if str(command.get("domain") or "") != "cover":
+        return {}
+    if str(command.get("service") or "") != "set_cover_position":
+        return {}
+
+    command_path = str(command.get("path") or "")
+    top = _TOP_ACTION.match(command_path)
+    if not top:
+        return {}
+    command_index = int(top.group(1))
+
+    detail = _trace_detail(result)
+    if not isinstance(detail, dict):
+        return {}
+    trace = detail.get("trace")
+    if not isinstance(trace, dict):
+        return {}
+    actions = _config_actions(detail)
+    if not actions:
+        return {}
+
+    collected: dict[str, float] = {}
+    for index in range(min(command_index, len(actions))):
+        action = actions[index]
+        if not isinstance(action.get("variables"), dict):
+            continue
+        for node in nodes(trace.get(f"action/{index}")):
+            changed = node.get("changed_variables")
+            if not isinstance(changed, dict):
+                continue
+            for raw_name, raw_value in changed.items():
+                semantic = _semantic_variable_name(str(raw_name))
+                numeric = _number(raw_value)
+                if semantic and numeric is not None:
+                    collected[semantic] = numeric
+
+    if not collected:
+        return {}
+
+    data = command.get("data")
+    requested = _number(data.get("position") if isinstance(data, dict) else None)
+    if requested is None:
+        return {}
+    calculated = collected.get("corrected_position")
+    if calculated is None:
+        calculated = collected.get("raw_position")
+    if calculated is not None and abs(calculated - requested) > 1e-9:
+        return {}
+
+    return collected
+
+
 def periodic_position_decision(
     result: InvestigationResult,
     command: dict[str, Any],
@@ -175,7 +268,9 @@ def periodic_position_decision(
     and an executed ``cover.set_cover_position`` command already selected by the V2
     resolver as the unique effect command. The requested position is action evidence.
     Runtime-proven numeric conditions from the exact executed branch are added as cover
-    decision factors; discrete state guards remain evidence only.
+    decision factors; when the automation computes the position in Jinja variables
+    instead of a choose branch, runtime ``changed_variables`` provide the decision-input
+    snapshot. Discrete state guards remain evidence only.
     """
     if result.entity_id.split(".", 1)[0] != "cover":
         return None
@@ -199,6 +294,7 @@ def periodic_position_decision(
         return None
 
     factors = cover_branch_numeric_factors(result, command)
+    runtime_inputs = cover_runtime_template_inputs(result, command)
     return {
         "kind": "cover_periodic_position",
         "origin": "cover_periodic_position",
@@ -209,6 +305,7 @@ def periodic_position_decision(
             "trigger": dict(trigger),
             "requested_position": numeric_position,
             "decision_factors": factors,
+            "runtime_inputs": runtime_inputs,
         },
         "effect_command": {
             "path": command.get("path"),
