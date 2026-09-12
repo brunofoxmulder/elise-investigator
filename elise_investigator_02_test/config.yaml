@@ -1,24 +1,24 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.3.0-rc.5.1"
+version: "0.3.0-rc.6"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc5-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc6-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# V2 RC5.1 TERRAIN : RC4 conservée à l'identique côté moteur causal.
-# Correctif RC5 du rendu terrain : l'âge relatif de l'événement est ajouté depuis event_time.
+# V2 RC6 TERRAIN : renommage propre de RC5.1, moteur causal inchangé.
+# Le rendu terrain ajoute l'âge relatif de l'événement depuis event_time.
 # Exemple : "Volet salon s'est fermé il y a 2 min parce que le soleil s'est couché il y a 45 minutes."
 # L'âge de l'action reste distinct des délais causaux déjà présents dans la raison.
 # Aucun changement causal, aucun nouveau support climate/attribut dans cette RC.
 # Tous les chemins RC4 validés restent inchangés : volets, lampes, prises, Tineco, chargeurs, commandes utilisateur.
 # Dev.54 reste le fallback officiel intact.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc5-private:0.3.0-rc.5.1
-# CI complète : PASS. Image privée amd64 + manifeste : PASS. Validation terrain RC5.1 requise.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc6-private:0.3.0-rc.6
+# Image privée amd64 + manifeste : PASS. Validation terrain RC6 requise.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
