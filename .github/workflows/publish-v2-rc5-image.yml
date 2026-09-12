@@ -38,10 +38,10 @@ jobs:
           file: ./elise_investigator/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/brunofoxmulder/elise-investigator-v2-rc5-private:0.3.0-rc.5
+          tags: ghcr.io/brunofoxmulder/elise-investigator-v2-rc5-private:0.3.0-rc.5.1
           build-args: |
-            BUILD_VERSION=0.3.0-rc.5
+            BUILD_VERSION=0.3.0-rc.5.1
             BUILD_ARCH=amd64
 
       - name: Verify published image manifest
-        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-v2-rc5-private:0.3.0-rc.5
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-v2-rc5-private:0.3.0-rc.5.1
