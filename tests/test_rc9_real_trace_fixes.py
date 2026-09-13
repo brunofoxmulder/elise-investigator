@@ -12,6 +12,7 @@ if str(APP) not in sys.path:
 from causal_renderer_rc9 import CausalRendererRC9
 from causal_resolver_rc9 import resolve_cause_rc9, unique_effect_command_rc9
 from models import Evidence, InvestigationResult
+from trace_branch_path_dev70 import _config_at_path
 
 
 class _HA:
@@ -39,7 +40,7 @@ def _device_runtime(domain: str, service: str, device_id: str) -> dict:
 
 
 def _result(entity_id: str, before: str, after: str, trace: dict, source: str) -> InvestigationResult:
-    result = InvestigationResult(
+    return InvestigationResult(
         status="confirmed",
         entity_id=entity_id,
         entity_name=entity_id,
@@ -49,14 +50,19 @@ def _result(entity_id: str, before: str, after: str, trace: dict, source: str) -
         cause={"type": "automation", "entity_id": source, "name": source, "system_confirmed": True},
         evidence=[Evidence(kind="trace", summary="trace", strength="direct", raw=trace)],
     )
-    return result
 
 
 class RC9RealTraceFixes(unittest.IsolatedAsyncioTestCase):
+    def test_config_path_accepts_raw_ha_action_and_normalized_actions(self):
+        raw = {"action": [{"delay": {"seconds": 1}}]}
+        normalized = {"actions": [{"delay": {"seconds": 1}}]}
+        self.assertEqual(_config_at_path(raw, "action/0"), raw["action"][0])
+        self.assertEqual(_config_at_path(normalized, "action/0"), normalized["actions"][0])
+
     def test_brosse_device_action_off_after_completed_delay(self):
         trace = {
             "config": {
-                "actions": [
+                "action": [
                     {"type": "turn_on", "domain": "switch", "device_id": "brush"},
                     {"delay": {"hours": 1, "seconds": 1}},
                     {"type": "turn_off", "domain": "switch", "device_id": "brush"},
@@ -80,7 +86,7 @@ class RC9RealTraceFixes(unittest.IsolatedAsyncioTestCase):
     async def test_aspirateur_default_branch_after_failed_power_condition(self):
         trace = {
             "config": {
-                "actions": [
+                "action": [
                     {"type": "turn_on", "domain": "switch", "device_id": "vacuum"},
                     {"delay": {"minutes": 2}},
                     {
@@ -126,7 +132,7 @@ class RC9RealTraceFixes(unittest.IsolatedAsyncioTestCase):
 
     def test_explicit_other_entity_is_never_borrowed(self):
         trace = {
-            "config": {"actions": [{"action": "switch.turn_off"}]},
+            "config": {"action": [{"action": "switch.turn_off"}]},
             "trace": {
                 "action/0": [
                     {

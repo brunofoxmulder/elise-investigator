@@ -1,9 +1,9 @@
-name: Publish V2 RC9 private image
+name: Publish V2 RC10 private image
 
 on:
   push:
     branches:
-      - candidate-v2-rc9
+      - candidate-v2-rc10
     paths:
       - '.github/workflows/publish-v2-rc5-image.yml'
       - 'elise_investigator/**'
@@ -15,10 +15,10 @@ permissions:
 
 jobs:
   build-publish:
-    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/candidate-v2-rc9'
+    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/candidate-v2-rc10'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout V2 RC9
+      - name: Checkout V2 RC10
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
@@ -38,10 +38,10 @@ jobs:
           file: ./elise_investigator/Dockerfile
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/brunofoxmulder/elise-investigator-v2-rc9-private:0.3.0-rc.9
+          tags: ghcr.io/brunofoxmulder/elise-investigator-v2-rc10-private:0.3.0-rc.10
           build-args: |
-            BUILD_VERSION=0.3.0-rc.9
+            BUILD_VERSION=0.3.0-rc.10
             BUILD_ARCH=amd64
 
       - name: Verify published image manifest
-        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-v2-rc9-private:0.3.0-rc.9
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-v2-rc10-private:0.3.0-rc.10

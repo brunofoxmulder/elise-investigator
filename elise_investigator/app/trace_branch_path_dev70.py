@@ -16,7 +16,15 @@ def _config_at_path(config: dict[str, Any], path: str) -> Any:
     while index < len(parts):
         token = parts[index]
         if token == "action":
-            actions = current.get("actions") if isinstance(current, dict) else None
+            actions = None
+            if isinstance(current, dict):
+                # Home Assistant raw automation traces use ``action`` at the root,
+                # while some normalized/internal fixtures and script shapes expose
+                # ``actions``. Accept both exact structural forms; do not search
+                # unrelated keys or branches.
+                actions = current.get("actions")
+                if not isinstance(actions, list):
+                    actions = current.get("action")
             if not isinstance(actions, list) or index + 1 >= len(parts):
                 return None
             try:
