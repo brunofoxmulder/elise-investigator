@@ -106,6 +106,12 @@ def _device_state_text(cause: dict[str, Any], detail: dict[str, Any]) -> str | N
         return f"« {label} » a été ouvert"
     if trigger_type in {"closed", "not_opened"}:
         return f"« {label} » a été fermé"
+    # HA device triggers often expose only a semantic type (turned_on/turned_off)
+    # rather than a populated to_state. These are still direct runtime trigger facts.
+    if trigger_type == "turned_on":
+        return f"« {label} » est passé à on"
+    if trigger_type == "turned_off":
+        return f"« {label} » est passé à off"
     if after is not None:
         return f"« {label} » est passé à {after}"
     return None
