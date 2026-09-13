@@ -121,7 +121,7 @@ class RC9RealTraceFixes(unittest.IsolatedAsyncioTestCase):
         text = await renderer.render(cause)
         self.assertEqual(
             text,
-            "après le délai de 2 min, la condition « Prise aspirateur Power > 1 W » n'était pas satisfaite",
+            "après le délai de 2 minutes, la condition « Prise aspirateur Power > 1 W » n'était pas satisfaite",
         )
 
     def test_explicit_other_entity_is_never_borrowed(self):
