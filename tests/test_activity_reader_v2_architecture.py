@@ -87,6 +87,28 @@ class ActivityReaderV2ArchitectureTests(unittest.IsolatedAsyncioTestCase):
             "triggered by state of binary_sensor.motion",
         )
 
+    async def test_bare_triggered_provider_text_is_also_suppressed(self):
+        record = _record(
+            reason="triggered",
+            reason_code="ha_2026_9_activity_native",
+        )
+        reader = ActivityTraceReaderV2(_HA())
+        with patch.object(
+            Dev63ActivityTraceReader,
+            "_record_from_entries",
+            new=AsyncMock(return_value=record),
+        ):
+            result = await reader._record_from_entries(
+                "light.test",
+                [],
+                end_time=datetime.now(timezone.utc),
+                hours=12,
+                allow_upstream=True,
+            )
+        self.assertIsNone(result.reason)
+        self.assertIsNone(result.reason_code)
+        self.assertEqual(result.trigger.get("suppressed_native_reason"), "triggered")
+
     async def test_valid_v2_reason_is_preserved(self):
         record = _record(reason="un mouvement a été détecté", reason_code="v2_exact_trace")
         reader = ActivityTraceReaderV2(_HA())
