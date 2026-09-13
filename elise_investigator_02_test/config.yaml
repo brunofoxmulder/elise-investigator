@@ -1,24 +1,23 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.3.0-rc.8"
+version: "0.3.0-rc.9"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc8-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc9-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# V2 RC8 TERRAIN : deux corrections structurelles ciblées après RC7.
-# 1) Les triggers Home Assistant de type device turned_on / turned_off sont désormais rendus à partir de la preuve runtime même sans to_state.
-# 2) Un wait_for_trigger terminé peut expliquer l'action qui le suit immédiatement dans la même branche exécutée choose/.../sequence/....
-# Cette extension reste strictement action-locale : commande d'effet unique, même branche exécutée, wait frère immédiatement précédent ; aucun rapprochement temporel libre.
-# La sélection de trace renforcée de RC7 est conservée sans modification.
-# Le resolver causal V2 général, le rendu avec âge relatif de l'événement et les chemins déjà validés restent inchangés.
+# V2 RC9 TERRAIN : corrections ciblées à partir des structures réelles confirmées par les traces HA et la documentation Maison Cognitive.
+# 1) Brosse à dents OFF : une action device turn_off suivant immédiatement un delay réellement exécuté peut être reliée au délai écoulé, même lorsque HA n'expose que la cible device/registry dans la trace runtime.
+# 2) Aspirateur OFF : quand HA prouve choice: default sur un choose contenant une seule branche et une seule condition numeric_state, la branche default peut être expliquée par le fait que cette condition n'a pas sélectionné la branche. Aucune valeur runtime n'est inventée.
+# Le resolver V2 validé est exécuté en priorité et reste inchangé ; RC9 n'ajoute ces fallbacks qu'en cas d'échec du chemin V2.
+# La sélection de trace RC7/RC8, le rendu avec âge relatif de l'événement et les chemins déjà validés restent conservés.
 # Aucun nouveau support climate/attribut dans cette RC. Dev.54 reste le fallback officiel intact.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc8-private:0.3.0-rc.8
-# CI complète : PASS. Image privée amd64 + manifeste : PASS. Validation terrain prioritaire : brosse à dents ON et aspirateur OFF.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc9-private:0.3.0-rc.9
+# CI complète RC9 : PASS. Image privée amd64 + manifeste : PASS. Validation terrain prioritaire : brosse à dents OFF et aspirateur OFF sur les événements récents déjà observés.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
