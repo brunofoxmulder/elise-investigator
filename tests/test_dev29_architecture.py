@@ -19,7 +19,7 @@ class TestDev29Architecture(unittest.TestCase):
             "main_dev71.py", "main_dev72.py", "main_dev73.py", "main_v2_rc1.py",
             "main_v2_rc2.py", "main_v2_rc3.py", "main_v2_rc4.py", "main_v2_rc5.py",
             "main_v2_rc6.py", "main_v2_rc7.py", "main_v2_rc8.py", "main_v2_rc9.py",
-            "main_v2_rc10.py",
+            "main_v2_rc10.py", "main_v2_rc11.py",
         )
         self.assertTrue(any(name in run_sh for name in supported))
         self.assertNotIn("main_dev54.py", run_sh)
