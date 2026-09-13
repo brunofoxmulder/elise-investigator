@@ -1,0 +1,30 @@
+from __future__ import annotations
+
+from aiohttp import web
+
+import main_dev63 as impl
+from activity_reader_rc11 import ActivityTraceReaderRC11
+from causal_response import answer_from_record
+
+VERSION = "0.3.0-rc.11"
+
+
+def _answer_with_event_age(record) -> tuple[str, bool]:
+    answer = answer_from_record(record)
+    found = bool(
+        record.origin_type in {"user", "alexa"}
+        or (record.origin_type in {"automation", "script"} and record.reason)
+    )
+    return answer, found
+
+
+async def create_app() -> web.Application:
+    impl.VERSION = VERSION
+    impl.ActivityTraceReader = ActivityTraceReaderRC11
+    impl._answer = _answer_with_event_age
+    return await impl.create_app()
+
+
+if __name__ == "__main__":
+    web.run_app(create_app(), host="0.0.0.0", port=8099, access_log=None)
+
