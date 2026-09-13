@@ -17,6 +17,7 @@ from models import InvestigationResult
 from trace_final_action_dev63 import _supported_true_condition
 
 _TOP_LEVEL_ACTION = re.compile(r"^action/(\d+)$")
+_CHOOSE_SEQUENCE_ACTION = re.compile(r"^action/(\d+)/choose/(\d+)/sequence/(\d+)$")
 
 
 def _unique_effect_command(result: InvestigationResult) -> dict[str, Any] | None:
@@ -31,12 +32,55 @@ def _unique_effect_command(result: InvestigationResult) -> dict[str, Any] | None
     return matches[0] if len(matches) == 1 else None
 
 
-def select_completed_wait_cause(result: InvestigationResult) -> dict[str, Any] | None:
-    """Explain a target action released by one completed top-level wait_for_trigger.
+def _preceding_wait_for_command(
+    detail: dict[str, Any], command_path: str
+) -> tuple[dict[str, Any], str] | None:
+    """Return the immediately preceding wait_for_trigger on the executed command path.
 
-    Unlike the older selector, this does not require a second command on the same target.
-    The exact trace, a unique target effect command and adjacency in the automation action
-    list remain mandatory. No time-window inference is used.
+    Supported shapes are deliberately bounded to the two structurally exact forms already
+    seen in terrain traces: top-level actions and one executed choose/.../sequence branch.
+    No temporal proximity or entity-specific rule is used.
+    """
+    actions = _config_actions(detail)
+    if not actions:
+        return None
+
+    top = _TOP_LEVEL_ACTION.fullmatch(command_path)
+    if top:
+        command_index = int(top.group(1))
+        wait_index = command_index - 1
+        if 0 <= wait_index < len(actions):
+            wait_action = actions[wait_index]
+            if isinstance(wait_action.get("wait_for_trigger"), list):
+                return wait_action, f"action/{wait_index}"
+        return None
+
+    nested = _CHOOSE_SEQUENCE_ACTION.fullmatch(command_path)
+    if not nested:
+        return None
+    action_index, choice_index, sequence_index = map(int, nested.groups())
+    if not 0 <= action_index < len(actions):
+        return None
+    choose = actions[action_index].get("choose")
+    if not isinstance(choose, list) or not 0 <= choice_index < len(choose):
+        return None
+    choice = choose[choice_index]
+    sequence = choice.get("sequence") if isinstance(choice, dict) else None
+    wait_index = sequence_index - 1
+    if not isinstance(sequence, list) or not 0 <= wait_index < len(sequence):
+        return None
+    wait_action = sequence[wait_index]
+    if not isinstance(wait_action, dict) or not isinstance(wait_action.get("wait_for_trigger"), list):
+        return None
+    return wait_action, f"action/{action_index}/choose/{choice_index}/sequence/{wait_index}"
+
+
+def select_completed_wait_cause(result: InvestigationResult) -> dict[str, Any] | None:
+    """Explain an exact target action released by an immediately preceding completed wait.
+
+    The exact trace and a unique executed target-effect command remain mandatory. The wait
+    must be the previous sibling on the same executed path, either top-level or inside one
+    choose sequence. This extends the proven action-local rule without time-window guessing.
     """
     if result.status != "confirmed" or result.cause.get("system_confirmed") is not True:
         return None
@@ -46,18 +90,11 @@ def select_completed_wait_cause(result: InvestigationResult) -> dict[str, Any] |
     command = _unique_effect_command(result)
     if not isinstance(detail, dict) or not isinstance(command, dict):
         return None
-    match = _TOP_LEVEL_ACTION.fullmatch(str(command.get("path") or ""))
-    actions = _config_actions(detail)
-    if not match or not actions:
+    command_path = str(command.get("path") or "")
+    preceding = _preceding_wait_for_command(detail, command_path)
+    if not preceding:
         return None
-    command_index = int(match.group(1))
-    wait_index = command_index - 1
-    if not 0 <= wait_index < len(actions):
-        return None
-    wait_action = actions[wait_index]
-    if not isinstance(wait_action.get("wait_for_trigger"), list):
-        return None
-    wait_path = f"action/{wait_index}"
+    wait_action, wait_path = preceding
     actual = _completed_wait_trigger(detail, wait_path)
     if not actual:
         return None
@@ -66,11 +103,11 @@ def select_completed_wait_cause(result: InvestigationResult) -> dict[str, Any] |
         "kind": "action_trigger",
         "origin": "wait_for_trigger",
         "path": wait_path,
-        "command_path": command["path"],
+        "command_path": command_path,
         "proven": True,
         "detail": _merge_trigger(actual, config),
         "effect_command": {
-            "path": command["path"],
+            "path": command_path,
             "domain": command.get("domain"),
             "service": command.get("service"),
         },
