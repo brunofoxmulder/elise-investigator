@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0-rc.11 — projection exacte des device actions sans `result.params`
+
+- Base exacte : RC10 terrain, sans modification du resolver default/delay RC9 ni du renderer.
+- Cause racine confirmée : l'étape réellement exécutée `action/2/default/0` de l'automatisation Charge aspirateur ne contient pas `result.params`; RC10 retrouvait bien la configuration `action`, mais ne projetait pas la device action de ce nœud vers la commande normalisée attendue par le resolver.
+- Règle RC11 : conserver `result.params` en priorité lorsqu'il existe ; sinon lire exclusivement la configuration située au même chemin runtime exécuté, sans recherche libre ni corrélation temporelle permissive.
+- Mapping device action confirmé : la valeur opaque `entity_id` de l'action est l'ID de l'entrée du registre d'entités Home Assistant ; elle doit se résoudre exactement vers l'`entity_id` canonique de l'événement.
+- La projection vérifie aussi le `device_id` et le domaine attendus ; une égalité sur le seul `device_id` est explicitement refusée afin de ne pas confondre, notamment, `switch.prise_aspirateur` avec `switch.prise_aspirateur_child_lock`.
+- Tests ajoutés : absence de `result.params`, priorité de `result.params`, child lock, `wait_for_trigger`, délai adjacent, commande de service, device action et scénario bout en bout aspirateur OFF.
+- Non-régressions explicites : volets, lumières, Tineco, commandes manuelles, âge de l'événement et firewall provider.
+- Qualification : 375/375 tests PASS ; sélection ciblée 61/61 PASS ; compilation, image privée amd64 et manifeste PASS.
+- Image candidate : `ghcr.io/brunofoxmulder/elise-investigator-v2-rc11-private:0.3.0-rc.11`.
+- Validation terrain encore requise avant toute promotion hors canal Test. Dev.54 reste le fallback stable intact.
+
 ## 0.2.0-dev.56 — causalité native Logbook
 
 - Base exacte : dev.55 terrain figée au commit `16e3a911e8268aac4b76d074f88299c4c8324732`.
