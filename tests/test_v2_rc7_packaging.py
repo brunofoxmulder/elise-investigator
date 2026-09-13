@@ -12,27 +12,17 @@ from activity_reader_v2 import ActivityTraceReaderV2
 
 
 class V2RC7PackagingTests(unittest.TestCase):
-    def test_candidate_version_and_reader(self):
+    def test_historical_candidate_version_and_reader(self):
         self.assertEqual(main_v2_rc7.VERSION, "0.3.0-rc.7")
         self.assertIs(main_v2_rc7.ActivityTraceReaderV2, ActivityTraceReaderV2)
 
-    def test_generic_launcher_points_to_v2_rc7(self):
-        run = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertIn("exec python3 main_v2_rc7.py", run)
-
-    def test_manifest_version_matches_candidate(self):
-        config = (ROOT / "elise_investigator" / "config.yaml").read_text(encoding="utf-8")
-        self.assertIn('version: "0.3.0-rc.7"', config)
-
-    def test_private_image_workflow_is_rc7_scoped(self):
-        workflow = (ROOT / ".github" / "workflows" / "publish-v2-rc5-image.yml").read_text(encoding="utf-8")
-        self.assertIn("candidate-v2-rc7", workflow)
-        self.assertIn("elise-investigator-v2-rc7-private:0.3.0-rc.7", workflow)
-        self.assertIn("platforms: linux/amd64", workflow)
+    def test_historical_wrapper_remains_present(self):
+        source = (APP / "main_v2_rc7.py").read_text(encoding="utf-8")
+        self.assertIn('VERSION = "0.3.0-rc.7"', source)
+        self.assertIn("ActivityTraceReaderV2", source)
+        self.assertIn("answer_from_record", source)
 
     def test_rc7_keeps_resolver_file_unchanged_by_candidate_wrapper(self):
-        rc7 = (APP / "main_v2_rc7.py").read_text(encoding="utf-8")
-        self.assertIn("ActivityTraceReaderV2", rc7)
         resolver = (APP / "causal_resolver_v2.py").read_text(encoding="utf-8")
         self.assertNotIn("rc.7", resolver)
 
