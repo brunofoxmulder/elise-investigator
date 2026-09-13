@@ -1,24 +1,25 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.3.0-rc.6"
+version: "0.3.0-rc.7"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc6-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc7-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# V2 RC6 TERRAIN : renommage propre de RC5.1, moteur causal inchangé.
-# Le rendu terrain ajoute l'âge relatif de l'événement depuis event_time.
-# Exemple : "Volet salon s'est fermé il y a 2 min parce que le soleil s'est couché il y a 45 minutes."
-# L'âge de l'action reste distinct des délais causaux déjà présents dans la raison.
-# Aucun changement causal, aucun nouveau support climate/attribut dans cette RC.
-# Tous les chemins RC4 validés restent inchangés : volets, lampes, prises, Tineco, chargeurs, commandes utilisateur.
-# Dev.54 reste le fallback officiel intact.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc6-private:0.3.0-rc.6
-# Image privée amd64 + manifeste : PASS. Validation terrain RC6 requise.
+# V2 RC7 TERRAIN : durcissement générique de la sélection de la trace exacte.
+# Le moteur causal V2 / resolver reste inchangé ; RC7 agit uniquement sur l'acquisition/sélection de preuve.
+# Plusieurs traces du même automate ne sont départagées qu'après preuve d'une commande exécutée correspondant exactement à l'effet observé.
+# Priorité au timestamp runtime de la commande ; le démarrage de trace sert uniquement de discriminant secondaire borné.
+# Sans timestamp de commande, une trace n'est retenue que si elle est l'unique trace exacte la plus proche ; égalité => échec fermé.
+# Le texte natif Home Assistant "triggered" seul est désormais filtré comme "triggered by ..." et ne peut plus devenir une cause utilisateur.
+# Le rendu RC6 avec âge relatif de l'événement est conservé à l'identique.
+# Aucun nouveau support climate/attribut dans cette RC. Dev.54 reste le fallback officiel intact.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc7-private:0.3.0-rc.7
+# CI complète : PASS. Image privée amd64 + manifeste : PASS. Validation terrain RC7 requise sur volets et prises.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
