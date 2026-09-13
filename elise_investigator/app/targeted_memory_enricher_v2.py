@@ -28,6 +28,44 @@ def _dt(value: Any) -> datetime | None:
     return parsed.astimezone(timezone.utc)
 
 
+def _select_unique_trace_match(
+    matches: list[tuple[float | None, float, dict[str, Any], str]],
+) -> tuple[float | None, float, dict[str, Any], str] | None:
+    """Choose one exact-effect trace using only bounded execution timing evidence.
+
+    Every candidate reaching this helper already belongs to the identified source
+    automation/script and contains a unique executed command matching the observed target
+    effect. Runtime command timestamps are strongest. If two runtime distances tie, the
+    explicit trace-start distance is a safe secondary discriminator. If command timestamps
+    are absent for all candidates, a unique nearest trace start may discriminate them.
+    Exact ties still fail closed.
+    """
+    if not matches:
+        return None
+    if len(matches) == 1:
+        return matches[0]
+
+    timed = [item for item in matches if item[0] is not None]
+    if timed:
+        timed.sort(key=lambda item: (float(item[0]), item[1]))
+        best = timed[0]
+        if len(timed) == 1:
+            return best
+        best_key = (float(best[0]), best[1])
+        second = timed[1]
+        second_key = (float(second[0]), second[1])
+        return best if best_key < second_key else None
+
+    # No command-node timestamps are available. We still have strong structural evidence:
+    # same identified source + exact matching executed target command. Use trace-start
+    # proximity only as a final bounded discriminator, and refuse exact ties.
+    untimed = sorted(matches, key=lambda item: item[1])
+    best = untimed[0]
+    if len(untimed) == 1 or best[1] < untimed[1][1]:
+        return best
+    return None
+
+
 class TargetedMemoryEnricherV2(BaseTargetedMemoryEnricher):
     """Action-aware trace enrichment with one resolver and one renderer.
 
@@ -147,11 +185,13 @@ class TargetedMemoryEnricherV2(BaseTargetedMemoryEnricher):
         source_name: str | None,
         source_kind: str,
     ) -> tuple[dict[str, Any] | None, str | None]:
-        """Select a source trace by the executed target command, not trace start age.
+        """Select a source trace from exact target-effect evidence.
 
-        Trace-start proximity only orders which summaries are read. Acceptance requires a
-        unique runtime command matching the observed target effect. When several runs
-        match, command-node timestamp proximity chooses only a unique best run.
+        Acceptance first requires a unique executed command matching the observed target
+        effect inside a trace of the source automation/script identified by Activity.
+        Runtime command timestamp proximity then selects a unique best run. Trace-start
+        proximity is only a secondary/final discriminator among those structurally exact
+        candidates; exact timing ties fail closed.
         """
         try:
             resolved = await self.trace_investigator._config_id_for_entity(source_entity_id)
@@ -197,21 +237,10 @@ class TargetedMemoryEnricherV2(BaseTargetedMemoryEnricher):
             runtime_distance = self._command_runtime_distance(result, path, event_time)
             matches.append((runtime_distance, summary_distance, detail, run_id))
 
-        if not matches:
+        selected = _select_unique_trace_match(matches)
+        if selected is None:
             return None, None
-        if len(matches) == 1:
-            return matches[0][2], matches[0][3]
-
-        timed = [item for item in matches if item[0] is not None]
-        if timed:
-            timed.sort(key=lambda item: (float(item[0]), item[1]))
-            best = timed[0]
-            if len(timed) == 1 or float(timed[1][0]) > float(best[0]):
-                return best[2], best[3]
-            return None, None
-
-        # Several exact-effect traces without runtime command timestamps are ambiguous.
-        return None, None
+        return selected[2], selected[3]
 
     async def _trace_reason(
         self,

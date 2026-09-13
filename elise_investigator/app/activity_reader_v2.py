@@ -8,7 +8,10 @@ from activity_reader_dev61 import _sorted_usable
 from activity_reader_dev60 import _native_message, _native_source, _origin
 from targeted_memory_enricher_v2 import TargetedMemoryEnricherV2
 
-_RAW_PROVIDER_TRIGGER = re.compile(r"^\s*triggered\s+by\b", re.IGNORECASE)
+# Home Assistant 2026.9 can expose either the full provider sentence
+# "triggered by ..." or the bare word "triggered". Both are provenance hints,
+# not functional causes, and must never reach the user-facing explanation.
+_RAW_PROVIDER_TRIGGER = re.compile(r"^\s*triggered(?:\s+by\b.*)?\s*$", re.IGNORECASE)
 _COVER_TERMINALS = {"open", "closed"}
 _COVER_MOVING = {"opening", "closing"}
 
@@ -143,7 +146,7 @@ class ActivityTraceReaderV2(Dev63ActivityTraceReader):
                             record.reason_code = "ha_2026_9_activity_source_hint"
 
         # Provider prose is evidence only. V2 never exposes Home Assistant's English
-        # `triggered by ...` sentence as its human causal explanation.
+        # `triggered` / `triggered by ...` text as its human causal explanation.
         if (
             record.origin_type in {"automation", "script"}
             and _raw_provider_reason(record.reason)
