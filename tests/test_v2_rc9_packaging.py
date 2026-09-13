@@ -12,25 +12,11 @@ from activity_reader_rc9 import ActivityTraceReaderRC9
 
 
 class V2RC9PackagingTests(unittest.TestCase):
-    def test_candidate_version_and_reader(self):
+    def test_historical_rc9_wrapper_remains_available(self):
         self.assertEqual(main_v2_rc9.VERSION, "0.3.0-rc.9")
         self.assertIs(main_v2_rc9.ActivityTraceReaderRC9, ActivityTraceReaderRC9)
 
-    def test_generic_launcher_points_to_v2_rc9(self):
-        run = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        self.assertIn("exec python3 main_v2_rc9.py", run)
-
-    def test_manifest_version_matches_candidate(self):
-        config = (ROOT / "elise_investigator" / "config.yaml").read_text(encoding="utf-8")
-        self.assertIn('version: "0.3.0-rc.9"', config)
-
-    def test_private_image_workflow_is_rc9_scoped(self):
-        workflow = (ROOT / ".github" / "workflows" / "publish-v2-rc5-image.yml").read_text(encoding="utf-8")
-        self.assertIn("candidate-v2-rc9", workflow)
-        self.assertIn("elise-investigator-v2-rc9-private:0.3.0-rc.9", workflow)
-        self.assertIn("platforms: linux/amd64", workflow)
-
-    def test_v2_resolver_remains_unchanged(self):
+    def test_rc9_resolver_contract_remains_present(self):
         source = (APP / "causal_resolver_rc9.py").read_text(encoding="utf-8")
         self.assertIn("resolve_cause_v2(result)", source)
         resolver = (APP / "causal_resolver_v2.py").read_text(encoding="utf-8")
