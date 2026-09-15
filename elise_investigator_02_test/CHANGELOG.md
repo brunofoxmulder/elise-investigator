@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0-rc.12 — déclencheur retrouvé après projection exacte de la commande
+
+- Corrige les ON immédiats dont la source automation est reconnue mais la raison reste vide lorsque l'action exécutée n'a pas de `result.params`.
+- La chaîne causale était construite avant la projection RC11 ; RC12 conserve toute cause déjà résolue, puis complète seulement la chaîne manquante après reconnaissance d'une commande exécutée unique.
+- Le déclencheur reste celui de la trace runtime. Les délais et attentes antérieurs gardent leur rôle de barrière ; une attente ultérieure ne remplace pas la cause du ON.
+- Priorité `result.params`, chemin runtime exact, résolution registry, refus de `device_id` seul, preuves brutes et chaîne d'origine conservés.
+- Projection RC11, sélection des traces, resolver default/delay, renderer, âge des événements et dev.54 inchangés.
+- Qualification : 413/413 tests PASS ; CI et construction/publication/vérification du manifeste de l'image privée amd64 PASS.
+- Candidate : commit `295c86c536a46fac82c8db46b70b4697bd6471b0`, PR #86 non fusionnée.
+- Image : `ghcr.io/brunofoxmulder/elise-investigator-v2-rc12-private:0.3.0-rc.12`.
+- Promotion sur Test autorisée par Bruno le 15/09/2026. Installation manuelle et validation terrain encore requises ; aucun changement HA automatique.
+- Recette : ON naturels des prises aspirateur et brosse à dents, leurs OFF et conservation des autres chemins validés.
+
 ## 0.3.0-rc.11 — projection exacte des device actions sans `result.params`
 
 - Base exacte : RC10 terrain, sans modification du resolver default/delay RC9 ni du renderer.

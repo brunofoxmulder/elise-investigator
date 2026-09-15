@@ -1,24 +1,23 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.3.0-rc.11"
+version: "0.3.0-rc.12"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc11-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc12-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# V2 RC11 TERRAIN : récupération générique de la commande au chemin runtime exact lorsque `result.params` est absent.
-# Priorité inchangée : `result.params` reste la preuve autoritaire dès qu'il existe ; aucun repli vers la configuration n'est alors autorisé.
-# Sans `result.params`, RC11 lit exclusivement le nœud de `trace["config"]` situé au même chemin `action/...` que l'étape exécutée.
-# Pour une device action, la référence opaque `entity_id` est résolue par correspondance exacte avec l'ID d'entrée du registre d'entités HA,
-# puis vérifiée contre l'entity_id canonique, le device_id et le domaine attendus. Une correspondance fondée sur le seul device_id est refusée.
-# Le resolver default/delay RC9, le renderer, les chemins déjà validés et dev.54 restent strictement inchangés.
-# Qualification : 375/375 tests PASS ; non-régressions ciblées 61/61 PASS ; image et manifeste privés amd64 vérifiés.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc11-private:0.3.0-rc.11
-# Validation terrain prioritaire : switch.prise_aspirateur OFF sur la branche choose default réelle.
+# V2 RC12 TERRAIN : compléter le déclencheur runtime après la projection exacte RC11.
+# Conserve toute cause déjà résolue ; sinon exige une commande exécutée unique et complète la chaîne sur une copie.
+# result.params reste prioritaire ; configuration uniquement au chemin exécuté et résolution exacte par registre.
+# Le déclencheur vient exclusivement de la trace runtime ; une barrière temporelle antérieure continue de bloquer son réemploi.
+# Projection RC11, sélection des traces, resolver default/delay, renderer et dev.54 inchangés.
+# Qualification : 413/413 tests PASS ; CI et image privée amd64 vérifiées ; terrain RC12 encore à valider.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc12-private:0.3.0-rc.12
+# Recette prioritaire : ON naturels aspirateur et brosse à dents, puis leurs OFF et les cas déjà validés.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
