@@ -1,4 +1,4 @@
 #!/usr/bin/with-contenv bashio
 set -e
 cd /app
-exec python3 main_v2_rc11.py
+exec python3 main_v2_rc12.py

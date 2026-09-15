@@ -16,11 +16,10 @@ class V2RC11PackagingTests(unittest.TestCase):
         self.assertEqual(main_v2_rc11.VERSION, "0.3.0-rc.11")
         self.assertIs(main_v2_rc11.ActivityTraceReaderRC11, ActivityTraceReaderRC11)
 
-    def test_generic_launcher_and_manifest_point_to_rc11(self):
-        run = (ROOT / "elise_investigator" / "run.sh").read_text(encoding="utf-8")
-        config = (ROOT / "elise_investigator" / "config.yaml").read_text(encoding="utf-8")
-        self.assertIn("exec python3 main_v2_rc11.py", run)
-        self.assertIn('version: "0.3.0-rc.11"', config)
+    def test_historical_wrapper_remains_available(self):
+        wrapper = (APP / "main_v2_rc11.py").read_text(encoding="utf-8")
+        self.assertIn('VERSION = "0.3.0-rc.11"', wrapper)
+        self.assertIn("ActivityTraceReaderRC11", wrapper)
 
     def test_private_image_workflow_is_rc11_scoped(self):
         workflow = (ROOT / ".github" / "workflows" / "publish-v2-rc11-image.yml").read_text(encoding="utf-8")
