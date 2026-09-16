@@ -18,17 +18,23 @@ from proof_capture_rc13 import ObservedMemoryStream
 
 
 class PackagingTests(unittest.IsolatedAsyncioTestCase):
-    def test_candidate_launcher_is_isolated_from_installed_rc12(self):
-        self.assertIn("main_v2_rc13.py", (ROOT / "elise_investigator/run_rc13.sh").read_text())
-        self.assertIn("COPY run_rc13.sh /run.sh", (ROOT / "elise_investigator/Dockerfile.rc13").read_text())
-        self.assertIn("main_v2_rc12.py", (ROOT / "elise_investigator/run.sh").read_text())
+    def test_candidate_preserves_proven_generic_packaging(self):
+        self.assertEqual((ROOT / "elise_investigator/run.sh").read_text(),
+                         "#!/usr/bin/with-contenv bashio\nset -e\ncd /app\nexec python3 main_v2_rc13.py\n")
+        dockerfile = (ROOT / "elise_investigator/Dockerfile").read_text()
+        self.assertIn("COPY run.sh /run.sh", dockerfile)
+        self.assertIn("RUN chmod 0755 /run.sh", dockerfile)
+        self.assertIn('CMD ["/run.sh"]', dockerfile)
+        self.assertFalse((ROOT / "elise_investigator/Dockerfile.rc13").exists())
+        self.assertFalse((ROOT / "elise_investigator/run_rc13.sh").exists())
+        self.assertIn('version: "0.3.0-rc.13"', (ROOT / "elise_investigator/config.yaml").read_text())
         self.assertEqual(candidate.VERSION, "0.3.0-rc.13")
 
     def test_workflow_tests_before_building_separate_candidate(self):
         workflow = (ROOT / ".github/workflows/publish-v2-rc13-image.yml").read_text()
         self.assertIn("refs/heads/candidate-v2-rc13-proof-retention", workflow)
         self.assertIn("elise-investigator-v2-rc13-private:0.3.0-rc.13", workflow)
-        self.assertIn("file: ./elise_investigator/Dockerfile.rc13", workflow)
+        self.assertIn("file: ./elise_investigator/Dockerfile\n", workflow)
         self.assertLess(workflow.index("unittest discover"), workflow.index("push: true"))
 
     async def test_bootstrap_uses_existing_stream_database_and_shutdown_order(self):

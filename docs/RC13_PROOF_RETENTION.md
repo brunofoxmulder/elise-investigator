@@ -98,9 +98,14 @@ lampes et barrières temporelles déjà validés. Aucun mouvement forcé nécess
 
 ## Livraison et retour arrière
 
-La candidate possède son launcher, son Dockerfile et son workflow d'image dédiés.
-Les launchers/manifeste RC12 et le manifeste installé `elise_investigator_02_test`
-ne sont pas modifiés. La PR reste brouillon et cible la branche RC12.
+La candidate conserve le Dockerfile générique éprouvé, inchangé, qui copie
+`run.sh` vers `/run.sh`, applique `chmod 0755` et lance `CMD ["/run.sh"]`.
+Seul le module Python lancé par `run.sh` et la version du manifeste source
+avancent vers RC13 sur cette branche. Aucun Dockerfile ou launcher dédié n'est
+ajouté, conformément à DEC-ELISE-017 et INC-ELISE-PACK-20260909.
+Le workflow d'image est dédié à la branche candidate. Le manifeste installé
+`elise_investigator_02_test`, main et la branche RC12 ne sont pas modifiés.
+La PR reste brouillon et cible la branche RC12.
 
 La préparation GitHub ne déploie rien dans HA. Avant promotion : CI verte, image
 vérifiée, puis validation explicite. En cas de retour à RC12, la table additive

@@ -46,7 +46,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./elise_investigator
-          file: ./elise_investigator/Dockerfile.rc13
+          file: ./elise_investigator/Dockerfile
           platforms: linux/amd64
           push: true
           tags: ghcr.io/brunofoxmulder/elise-investigator-v2-rc13-private:0.3.0-rc.13
