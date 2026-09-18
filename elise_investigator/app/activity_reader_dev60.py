@@ -31,6 +31,16 @@ def _origin(entry: dict[str, Any]) -> tuple[str, str | None, str | None]:
         return "script", source, name
     if entry.get("context_user_id"):
         return "user", None, None
+    # Logbook has already linked this exact effect to an interactive voice
+    # session. This proves generic user origin, never the speaker's identity.
+    # Listening is the only accepted root, as in dev.54; later phases alone
+    # cannot prove an interactive session. No nearby satellite lookup is used.
+    if (
+        source.startswith("assist_satellite.")
+        and source.removeprefix("assist_satellite.")
+        and entry.get("context_state") == "listening"
+    ):
+        return "user", None, None
     return "unknown", None, None
 
 

@@ -25,18 +25,20 @@ async def _stop_capture(app):
 async def _proof_status(request):
     app = request.app
     capture = app.get("proof_capture_rc13")
-    return web.json_response({"version": VERSION, "available": capture is not None,
+    return web.json_response({"version": app.get("investigator_version", VERSION), "available": capture is not None,
         "capture": capture.status() if capture else None,
         "retention_hours": app["causal_recorder"].retention_hours,
         "archive_failures": app["activity_reader_dev63"].archive_failures,
         "read_only_home_assistant": True})
 
 
-async def create_app() -> web.Application:
-    impl.VERSION = VERSION
+async def create_app(*, version: str = VERSION) -> web.Application:
+    """Share the RC13 lifecycle while allowing a successor's release version."""
+    impl.VERSION = version
     impl.ActivityTraceReader = ActivityTraceReaderRC13
     impl._answer = _answer_with_event_age
     app = await impl.create_app()
+    app["investigator_version"] = version
     reader = app["activity_reader_dev63"]
     try:
         archive = ProofArchive(app["causal_recorder"])

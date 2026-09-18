@@ -1,0 +1,75 @@
+name: Publish V2 RC14 private image
+
+on:
+  push:
+    branches:
+      - candidate-v2-rc14-native-assist-origin
+    paths:
+      - '.github/workflows/publish-v2-rc14-image.yml'
+      - 'elise_investigator/**'
+      - 'tests/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-publish:
+    if: github.repository == 'brunofoxmulder/elise-investigator' && github.ref == 'refs/heads/candidate-v2-rc14-native-assist-origin'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V2 RC14
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate candidate before publishing
+        run: |
+          python -m pip install --disable-pip-version-check aiohttp
+          python -m compileall -q elise_investigator/app tests
+          python -m unittest discover -s tests -p "test_*.py" -q
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and publish amd64 candidate image
+        id: publish
+        uses: docker/build-push-action@v6
+        with:
+          context: ./elise_investigator
+          file: ./elise_investigator/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private:0.3.0-rc.14
+          build-args: |
+            BUILD_VERSION=0.3.0-rc.14
+            BUILD_ARCH=amd64
+
+      - name: Verify published image manifest
+        run: docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private:0.3.0-rc.14
+
+      - name: Verify packaged version and native Assist origin
+        env:
+          CANDIDATE_IMAGE: ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private@${{ steps.publish.outputs.digest }}
+        run: |
+          docker run --rm --entrypoint python3 "$CANDIDATE_IMAGE" -c '
+          from pathlib import Path
+          import main_v2_rc14 as candidate
+          from activity_reader_dev60 import _origin
+          assert candidate.VERSION == "0.3.0-rc.14"
+          assert "exec python3 main_v2_rc14.py" in Path("/run.sh").read_text()
+          assert _origin({"context_entity_id": "assist_satellite.fixture", "context_state": "listening"}) == ("user", None, None)
+          assert _origin({"context_entity_id": "assist_satellite.fixture", "context_state": "processing"}) == ("unknown", None, None)
+          print("RC14 image: version, launcher and native Assist origin verified")
+          '

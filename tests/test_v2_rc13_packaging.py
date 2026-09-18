@@ -20,14 +20,14 @@ from proof_capture_rc13 import ObservedMemoryStream
 class PackagingTests(unittest.IsolatedAsyncioTestCase):
     def test_candidate_preserves_proven_generic_packaging(self):
         self.assertEqual((ROOT / "elise_investigator/run.sh").read_text(),
-                         "#!/usr/bin/with-contenv bashio\nset -e\ncd /app\nexec python3 main_v2_rc13.py\n")
+                         "#!/usr/bin/with-contenv bashio\nset -e\ncd /app\nexec python3 main_v2_rc14.py\n")
         dockerfile = (ROOT / "elise_investigator/Dockerfile").read_text()
         self.assertIn("COPY run.sh /run.sh", dockerfile)
         self.assertIn("RUN chmod 0755 /run.sh", dockerfile)
         self.assertIn('CMD ["/run.sh"]', dockerfile)
         self.assertFalse((ROOT / "elise_investigator/Dockerfile.rc13").exists())
         self.assertFalse((ROOT / "elise_investigator/run_rc13.sh").exists())
-        self.assertIn('version: "0.3.0-rc.13"', (ROOT / "elise_investigator/config.yaml").read_text())
+        self.assertIn('version: "0.3.0-rc.14"', (ROOT / "elise_investigator/config.yaml").read_text())
         self.assertEqual(candidate.VERSION, "0.3.0-rc.13")
 
     def test_workflow_tests_before_building_separate_candidate(self):
