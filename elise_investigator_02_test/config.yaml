@@ -1,24 +1,24 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.3.0-rc.13"
+version: "0.3.0-rc.14"
 slug: "elise_investigator_02_test"
 description: "Candidate privée de test HAOS pour Élise Investigator, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc13-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# V2 RC13 : conserver les preuves exactes lorsque les traces HA disparaissent.
-# Table additive dans le SQLite existant ; identite stricte de l'evenement selectionne par le journal.
-# Collecte bornee sur le flux existant ; aucune commande HA ; resolver et renderer RC12 conserves.
-# Retention selon reglage existant (12 h par defaut, 1 a 72 h) ; plafonds et conflits geres.
-# Qualification : 471/471 tests PASS ; CI, build amd64 et manifeste verifies ; terrain RC13 a valider.
-# Candidate : fbd7e1566c50cc91bafe103335e64f9c10f70cf9 ; PR #87 brouillon, non fusionnee.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc13-private:0.3.0-rc.13
-# Digest OCI : sha256:551d28c975f57139cc7fc4aa1d0e39507a5115684c4d80510f0b02c84c7f26da
-# Recette : demarrage/Ingress, mouvement naturel sans question, rotation traces, relecture et redemarrage.
+# V2 RC14 : attribution native assist_satellite.<id> en listening -> utilisateur generique.
+# Priorite automation/script preservee ; aucune identite humaine ou correlation temporelle.
+# Collecte, archive exacte SQLite, resolver et renderer RC13 reutilises sans migration.
+# Qualification : 483/483 tests PASS ; CI, build amd64, manifeste et code de l'image verifies.
+# Candidate : 5dcde3818aa90a34df37d0dad349d40ac119871e ; PR #88 brouillon, non fusionnee.
+# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private:0.3.0-rc.14
+# Digest OCI : sha256:5b5b937d7884a80cef0944ad0d3ba564c60e4d940d1a81d1d6c81e430b051fdd
+# Recette HAOS apres installation manuelle : demarrage, collecte et dernier ON/OFF vocal exact.
+# Retour RC13 : manifeste main 4bbbdd6c8a0d5c32879cd8db561e9a566b92b7cd ; dev54 intact.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
