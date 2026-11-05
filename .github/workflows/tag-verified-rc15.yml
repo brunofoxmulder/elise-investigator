@@ -1,0 +1,54 @@
+name: Tag verified RC15 test image
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  tag:
+    if: >-
+      github.repository == 'brunofoxmulder/elise-investigator' &&
+      github.event.pull_request.number == 89 &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'candidate-rc14-ha-2026-11-aliases' &&
+      github.event.label.name == 'tag-verified-rc15-approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Refuse overwriting an existing version tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          token=$(curl -fsS 'https://ghcr.io/token?scope=repository:brunofoxmulder/elise-investigator-rc15-test:pull' | jq -er .token)
+          status=$(curl -sS -o "$RUNNER_TEMP/manifest.json" -w '%{http_code}' \
+            -H "Authorization: Bearer $token" \
+            -H 'Accept: application/vnd.oci.image.manifest.v1+json, application/vnd.docker.distribution.manifest.v2+json' \
+            'https://ghcr.io/v2/brunofoxmulder/elise-investigator-rc15-test/manifests/0.3.0-rc.15')
+          if [ "$status" != 404 ]; then
+            echo "Version tag cannot be proven absent (HTTP $status); stopping."
+            exit 1
+          fi
+          echo "Version tag is absent."
+      - name: Re-tag the exact verified image
+        env:
+          IMAGE: ghcr.io/brunofoxmulder/elise-investigator-rc15-test
+          DIGEST: sha256:0e68ffbcaac99bb846ba07f1c2f1c2f5644ad8cb1fb39ae15c28dd16c10d8d4d
+        run: |
+          set -eu
+          docker pull "$IMAGE@$DIGEST"
+          actual=$(docker image inspect "$IMAGE@$DIGEST" --format '{{ index .Config.Labels "io.hass.version" }}')
+          test "$actual" = '0.3.0-rc.15'
+          docker tag "$IMAGE@$DIGEST" "$IMAGE:0.3.0-rc.15"
+          docker push "$IMAGE:0.3.0-rc.15"
+          docker buildx imagetools inspect "$IMAGE:0.3.0-rc.15" | tee "$RUNNER_TEMP/rc15-manifest.txt"
+          grep -F "$DIGEST" "$RUNNER_TEMP/rc15-manifest.txt"
