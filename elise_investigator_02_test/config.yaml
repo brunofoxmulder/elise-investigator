@@ -1,24 +1,22 @@
 name: "Élise Investigator 0.2 Test"
-version: "0.3.0-rc.14"
+version: "0.3.0-rc.15"
 slug: "elise_investigator_02_test"
-description: "Candidate privée de test HAOS pour Élise Investigator, strictement en lecture seule."
+description: "Candidate de test HAOS pour Élise Investigator, strictement en lecture seule."
 arch:
   - amd64
-image: "ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private"
+image: "ghcr.io/brunofoxmulder/elise-investigator-rc15-test"
 init: false
 startup: application
 boot: manual
 stage: experimental
 homeassistant_api: true
-# V2 RC14 : attribution native assist_satellite.<id> en listening -> utilisateur generique.
-# Priorite automation/script preservee ; aucune identite humaine ou correlation temporelle.
-# Collecte, archive exacte SQLite, resolver et renderer RC13 reutilises sans migration.
-# Qualification : 483/483 tests PASS ; CI, build amd64, manifeste et code de l'image verifies.
-# Candidate : 5dcde3818aa90a34df37d0dad349d40ac119871e ; PR #88 brouillon, non fusionnee.
-# Image : ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private:0.3.0-rc.14
-# Digest OCI : sha256:5b5b937d7884a80cef0944ad0d3ba564c60e4d940d1a81d1d6c81e430b051fdd
-# Recette HAOS apres installation manuelle : demarrage, collecte et dernier ON/OFF vocal exact.
-# Retour RC13 : manifeste main 4bbbdd6c8a0d5c32879cd8db561e9a566b92b7cd ; dev54 intact.
+# Proposition de recette RC15 ; NE PAS promouvoir sans validation de Bruno.
+# Alias via registre en lecture seule ; aucune modification du moteur causal RC14.
+# Version Supervisor = tag OCI = etiquette image = version interne : 0.3.0-rc.15.
+# Image source : commit bcd3d3f3c4ef1ffec5a5989fe0bfa62bd1bb3861.
+# Digest : sha256:0e68ffbcaac99bb846ba07f1c2f1c2f5644ad8cb1fb39ae15c28dd16c10d8d4d.
+# Point de reference RC14 : manifeste main 102ec29aa061cc667af9f3ca6cded52b998ba673 ;
+# image ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private:0.3.0-rc.14.
 ingress: true
 ingress_port: 8099
 ingress_entry: /
@@ -40,4 +38,5 @@ schema:
   default_window_minutes: int(5,180)
   max_reverse_candidates: int(5,100)
   mcp_connect_url: password?
+
 
