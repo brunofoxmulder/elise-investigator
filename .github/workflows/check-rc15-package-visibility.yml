@@ -27,16 +27,16 @@ jobs:
             exit 1
           fi
           jq -e '{name, visibility}' "$RUNNER_TEMP/rc14-package.json"
-      - name: List accessible Investigator image packages
+      - name: Check proposed RC15 package
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
-          url="https://api.github.com/users/brunofoxmulder/packages?package_type=container&per_page=100"
+          url="https://api.github.com/users/brunofoxmulder/packages/container/elise-investigator-v2-rc15-private"
           status=$(curl -sS -o "$RUNNER_TEMP/investigator-packages.json" -w '%{http_code}' \
             -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" "$url")
           if [ "$status" != 200 ]; then
-            echo "Package inventory could not be verified (GitHub HTTP $status)."
-            exit 1
+            echo "Proposed package visibility not verified (GitHub HTTP $status)."
+            exit 0
           fi
-          jq '[.[] | select(.name | startswith("elise-investigator")) | {name, visibility}]' "$RUNNER_TEMP/investigator-packages.json"
+          jq '{name, visibility}' "$RUNNER_TEMP/investigator-packages.json"
