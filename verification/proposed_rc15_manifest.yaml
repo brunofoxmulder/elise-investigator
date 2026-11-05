@@ -1,0 +1,42 @@
+name: "Élise Investigator 0.2 Test"
+version: "0.3.0-rc.15"
+slug: "elise_investigator_02_test"
+description: "Candidate de test HAOS pour Élise Investigator, strictement en lecture seule."
+arch:
+  - amd64
+image: "ghcr.io/brunofoxmulder/elise-investigator-rc15-test"
+init: false
+startup: application
+boot: manual
+stage: experimental
+homeassistant_api: true
+# Proposition de recette RC15 ; NE PAS promouvoir sans validation de Bruno.
+# Alias via registre en lecture seule ; aucune modification du moteur causal RC14.
+# Version Supervisor = tag OCI = etiquette image = version interne : 0.3.0-rc.15.
+# Image source : commit bcd3d3f3c4ef1ffec5a5989fe0bfa62bd1bb3861.
+# Digest : sha256:0e68ffbcaac99bb846ba07f1c2f1c2f5644ad8cb1fb39ae15c28dd16c10d8d4d.
+# Point de reference RC14 : manifeste main 102ec29aa061cc667af9f3ca6cded52b998ba673 ;
+# image ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private:0.3.0-rc.14.
+ingress: true
+ingress_port: 8099
+ingress_entry: /
+panel_icon: mdi:magnify-scan
+panel_title: Élise Investigator 0.2 Test
+panel_admin: true
+apparmor: true
+ports:
+  8099/tcp: null
+ports_description:
+  8099/tcp: "API locale désactivée par défaut"
+options:
+  log_level: info
+  default_window_minutes: 30
+  max_reverse_candidates: 25
+  mcp_connect_url: ""
+schema:
+  log_level: list(debug|info|warning|error)
+  default_window_minutes: int(5,180)
+  max_reverse_candidates: int(5,100)
+  mcp_connect_url: password?
+
+
