@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import re
+import asyncio
 import logging
+import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -11,6 +12,7 @@ from zoneinfo import ZoneInfo
 from models import InvestigationRequest
 
 _LOGGER = logging.getLogger(__name__)
+_REGISTRY_TIMEOUT_SECONDS = 1.0
 
 
 @dataclass(slots=True)
@@ -262,7 +264,13 @@ async def build_investigation_request(
 
     states = await ha.get_all_states()
     try:
-        registry = await ha.list_entity_registry()
+        entity_ids = [
+            state["entity_id"] for state in states
+            if isinstance(state, dict) and isinstance(state.get("entity_id"), str)
+        ]
+        registry = await asyncio.wait_for(
+            ha.get_entity_registry_entries(entity_ids), timeout=_REGISTRY_TIMEOUT_SECONDS
+        )
     except Exception:
         # Registry access is optional; preserve the existing RC14 resolver.
         _LOGGER.warning("Entity aliases unavailable; using existing names", exc_info=True)
