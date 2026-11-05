@@ -1,0 +1,49 @@
+name: Preserve RC14 reference image
+on:
+  pull_request:
+    types: [labeled]
+permissions:
+  contents: read
+  packages: write
+jobs:
+  preserve:
+    if: github.repository == 'brunofoxmulder/elise-investigator' && github.event.pull_request.number == 89 && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.head.ref == 'candidate-rc14-ha-2026-11-aliases' && github.event.label.name == 'preserve-rc14-image-authorized'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check destination is unused
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          code=$(curl -sS -o /tmp/package.json -w '%{http_code}' -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' https://api.github.com/users/brunofoxmulder/packages/container/elise-investigator-rc14-retour-20261105)
+          if [ "$code" != 404 ]; then
+            echo "Destination package is already present or cannot be checked (HTTP $code)."
+            exit 1
+          fi
+      - name: Authenticate to container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Copy the exact reference manifest
+        run: |
+          set -euo pipefail
+          source=ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private
+          destination=ghcr.io/brunofoxmulder/elise-investigator-rc14-retour-20261105
+          digest=sha256:5b5b937d7884a80cef0944ad0d3ba564c60e4d940d1a81d1d6c81e430b051fdd
+          docker buildx imagetools inspect "$source@$digest"
+          docker buildx imagetools create --prefer-index=false --tag "$destination:0.3.0-rc.14" "$source@$digest"
+          docker buildx imagetools inspect "$destination:0.3.0-rc.14" | tee /tmp/copy.txt
+          grep -F "$digest" /tmp/copy.txt
+      - name: Verify image runs
+        run: |
+          set -euo pipefail
+          destination=ghcr.io/brunofoxmulder/elise-investigator-rc14-retour-20261105
+          digest=sha256:5b5b937d7884a80cef0944ad0d3ba564c60e4d940d1a81d1d6c81e430b051fdd
+          docker pull "$destination@$digest"
+          docker run --rm --entrypoint python3 "$destination@$digest" -c 'import main_v2_rc14 as m; print("Version:", m.VERSION); assert m.VERSION == "0.3.0-rc.14"'
+      - name: Report package visibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' https://api.github.com/users/brunofoxmulder/packages/container/elise-investigator-rc14-retour-20261105 | jq '{name, visibility, html_url}'
