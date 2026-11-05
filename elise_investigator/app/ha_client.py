@@ -35,6 +35,7 @@ class HAReadOnlyClient:
     )
     _ALLOWED_WS_TYPES = {
         "config/entity_registry/get",
+        "config/entity_registry/get_entries",
         "config/entity_registry/list",
         "trace/list",
         "trace/get",
@@ -120,6 +121,15 @@ class HAReadOnlyClient:
         data = await self._ws({"type": "config/entity_registry/list"})
         return data if isinstance(data, list) else []
 
+    async def get_entity_registry_entries(self, entity_ids: list[str]) -> list[dict[str, Any]]:
+        """Read extended registry entries, including aliases, in one request."""
+        if not entity_ids:
+            return []
+        data = await self._ws({"type": "config/entity_registry/get_entries", "entity_ids": entity_ids})
+        if not isinstance(data, dict):
+            raise HomeAssistantError("Unexpected entity registry response")
+        return [entry for entry in data.values() if isinstance(entry, dict)]
+
     async def get_history(
         self,
         entity_id: str,
@@ -191,3 +201,4 @@ class HAReadOnlyClient:
             return await self._ws({"type": "trace/contexts", "domain": domain, "item_id": str(item_id)})
         except HomeAssistantError:
             return None
+
