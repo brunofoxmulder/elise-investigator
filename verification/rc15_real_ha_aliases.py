@@ -69,14 +69,17 @@ async def main():
         entity_id = entry["entity_id"]
 
         # This update is deliberately limited to the disposable localhost container.
-        async with session.ws_connect(client.WS_URL) as ws:
-            assert (await ws.receive_json())["type"] == "auth_required"
-            await ws.send_json({"type": "auth", "access_token": token})
-            assert (await ws.receive_json())["type"] == "auth_ok"
-            await ws.send_json({"id": 1, "type": "config/entity_registry/update",
-                                "entity_id": entity_id, "aliases": ["Volet salon"]})
-            result = await ws.receive_json()
-            assert result.get("success"), result
+        async def set_fixture_alias(target):
+            async with session.ws_connect(client.WS_URL) as ws:
+                assert (await ws.receive_json())["type"] == "auth_required"
+                await ws.send_json({"type": "auth", "access_token": token})
+                assert (await ws.receive_json())["type"] == "auth_ok"
+                await ws.send_json({"id": 1, "type": "config/entity_registry/update",
+                                    "entity_id": target, "aliases": ["Volet salon"]})
+                result = await ws.receive_json()
+                assert result.get("success"), result
+
+        await set_fixture_alias(entity_id)
 
         states = await client.get_all_states()
         question = "Pourquoi volet salon ?"
@@ -92,8 +95,27 @@ async def main():
             request, _ = await build_investigation_request(question, ha=client)
             samples.append((time.monotonic() - started) * 1000)
             assert request.entity_id == entity_id, (request.entity_id, entity_id)
+        for _ in range(30):
+            registry = await client.list_entity_registry()
+            other = next((x for x in registry if x.get("unique_id") == "rc15_fixture_002"), None)
+            if other:
+                try:
+                    await client.get_state(other["entity_id"])
+                    break
+                except HomeAssistantError:
+                    pass
+            await asyncio.sleep(1)
+        else:
+            raise AssertionError("Second disposable fixture entity did not load")
+        await set_fixture_alias(other["entity_id"])
+        try:
+            await build_investigation_request(question, ha=client)
+        except ConversationResolutionError as exc:
+            assert {x["entity_id"] for x in exc.candidates} == {entity_id, other["entity_id"]}
+        else:
+            raise AssertionError("Duplicate alias must be reported as ambiguous")
         print(f"Disposable HA {os.environ['HA_TEST_VERSION']}: alias resolved to fixture entity; "
-              f"median full request {statistics.median(samples):.1f} ms (n=5)")
+              f"ambiguous alias refused; median full request {statistics.median(samples):.1f} ms (n=5)")
 
 
 if __name__ == "__main__":
