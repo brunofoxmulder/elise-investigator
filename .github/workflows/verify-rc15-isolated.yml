@@ -88,6 +88,9 @@ jobs:
                 - name: Fixture rideau principal
                   unique_id: rc15_fixture_001
                   state: "1"
+                - name: Fixture rideau secondaire
+                  unique_id: rc15_fixture_002
+                  state: "1"
           YAML
           docker run -d --name rc15-ha-fixture -p 127.0.0.1:18123:8123 \
             -v "$RUNNER_TEMP/rc15-ha-config:/config" \
