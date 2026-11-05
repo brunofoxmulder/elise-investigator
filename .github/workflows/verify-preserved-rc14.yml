@@ -1,0 +1,20 @@
+name: Verify preserved RC14 independently
+on:
+  pull_request:
+    paths: ['.github/workflows/verify-preserved-rc14.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'brunofoxmulder/elise-investigator' && github.event.pull_request.number == 89 && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull public RC14 copy on a fresh runner
+        run: |
+          set -euo pipefail
+          image=ghcr.io/brunofoxmulder/elise-investigator-rc14-retour-20261105
+          digest=sha256:5b5b937d7884a80cef0944ad0d3ba564c60e4d940d1a81d1d6c81e430b051fdd
+          docker buildx imagetools inspect "$image:0.3.0-rc.14" | tee /tmp/image.txt
+          grep -Fx "Digest:    $digest" /tmp/image.txt
+          docker pull "$image@$digest"
+          docker run --rm --entrypoint python3 "$image@$digest" -c 'import main_v2_rc14 as m; assert m.VERSION == "0.3.0-rc.14"; print("Version verified:", m.VERSION)'

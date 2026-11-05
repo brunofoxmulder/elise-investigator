@@ -1,0 +1,54 @@
+name: Check existing test image visibility
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/check-rc15-package-visibility.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  package-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read existing RC14 package visibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          url="https://api.github.com/users/brunofoxmulder/packages/container/elise-investigator-v2-rc14-private"
+          status=$(curl -sS -o "$RUNNER_TEMP/rc14-package.json" -w '%{http_code}' \
+            -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" "$url")
+          if [ "$status" != 200 ]; then
+            echo "Visibility could not be verified (GitHub HTTP $status)."
+            exit 1
+          fi
+          jq -e '{name, visibility}' "$RUNNER_TEMP/rc14-package.json"
+      - name: Check proposed RC15 package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          url="https://api.github.com/users/brunofoxmulder/packages/container/elise-investigator-v2-rc15-private"
+          status=$(curl -sS -o "$RUNNER_TEMP/investigator-packages.json" -w '%{http_code}' \
+            -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" "$url")
+          if [ "$status" != 200 ]; then
+            echo "Proposed package visibility not verified (GitHub HTTP $status)."
+            exit 0
+          fi
+          jq '{name, visibility}' "$RUNNER_TEMP/investigator-packages.json"
+      - name: Check proposed test package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url="https://api.github.com/users/brunofoxmulder/packages/container/elise-investigator-rc15-test"
+          status=$(curl -sS -o "$RUNNER_TEMP/rc15-test-package.json" -w '%{http_code}' \
+            -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" "$url")
+          if [ "$status" = 200 ]; then
+            jq '{name, visibility}' "$RUNNER_TEMP/rc15-test-package.json"
+          else
+            echo "Proposed test package visibility not verified (GitHub HTTP $status)."
+          fi

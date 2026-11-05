@@ -1,0 +1,38 @@
+name: Verify RC15 proposed manifest
+
+on:
+  pull_request:
+    paths:
+      - 'verification/**'
+      - '.github/workflows/validate-rc15-manifest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify RC14 reference has the documented Git blob
+        run: |
+          test "$(git hash-object verification/rc14_reference_manifest.yaml)" = '102ec29aa061cc667af9f3ca6cded52b998ba673'
+      - name: Validate proposed manifest with Home Assistant dependencies
+        run: |
+          docker run --rm -v "$PWD/verification:/verification:ro" --entrypoint python3 \
+            ghcr.io/home-assistant/home-assistant:2026.11.0 /verification/validate_rc15_manifest.py
+      - name: Verify both published tags against recorded digests
+        run: |
+          set -eu
+          docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-rc15-test:0.3.0-rc.15 | tee "$RUNNER_TEMP/rc15.txt"
+          grep -F 'sha256:0e68ffbcaac99bb846ba07f1c2f1c2f5644ad8cb1fb39ae15c28dd16c10d8d4d' "$RUNNER_TEMP/rc15.txt"
+          docker buildx imagetools inspect ghcr.io/brunofoxmulder/elise-investigator-v2-rc14-private:0.3.0-rc.14 | tee "$RUNNER_TEMP/rc14.txt"
+          grep -F 'sha256:5b5b937d7884a80cef0944ad0d3ba564c60e4d940d1a81d1d6c81e430b051fdd' "$RUNNER_TEMP/rc14.txt"
+      - name: Verify published image metadata
+        run: |
+          image=ghcr.io/brunofoxmulder/elise-investigator-rc15-test:0.3.0-rc.15
+          docker pull "$image"
+          test "$(docker image inspect "$image" --format '{{ index .Config.Labels "io.hass.version" }}')" = '0.3.0-rc.15'
+          test "$(docker image inspect "$image" --format '{{.Architecture}}')" = 'amd64'
+          docker run --rm --entrypoint python3 "$image" -c 'import main_v2_rc15_ha202611 as m; assert m.VERSION == "0.3.0-rc.15"'

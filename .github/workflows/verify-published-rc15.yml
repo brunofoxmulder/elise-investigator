@@ -1,0 +1,54 @@
+name: Verify published RC15 digest
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/verify-published-rc15.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Read package visibility
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          url="https://api.github.com/users/brunofoxmulder/packages/container/elise-investigator-rc15-test"
+          status=$(curl -sS -o "$RUNNER_TEMP/rc15-package.json" -w '%{http_code}' \
+            -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" "$url")
+          if [ "$status" != 200 ]; then
+            echo "Cannot verify package visibility: GitHub HTTP $status"
+            exit 1
+          fi
+          jq -e '{name, visibility, html_url}' "$RUNNER_TEMP/rc15-package.json"
+      - name: Log in to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull and inspect exact published digest
+        env:
+          IMAGE: ghcr.io/brunofoxmulder/elise-investigator-rc15-test@sha256:0e68ffbcaac99bb846ba07f1c2f1c2f5644ad8cb1fb39ae15c28dd16c10d8d4d
+        run: |
+          docker pull "$IMAGE"
+          docker image inspect "$IMAGE" --format '{{.Id}} {{.Architecture}}'
+          docker run --rm --entrypoint python3 "$IMAGE" -c '
+          import pathlib
+          import main_v2_rc15_ha202611 as candidate
+          from conversation import resolve_entity
+          from ha_client import HAReadOnlyClient
+          assert candidate.VERSION == "0.3.0-rc.15"
+          assert "main_v2_rc15_ha202611.py" in pathlib.Path("/run.sh").read_text()
+          assert "config/entity_registry/get_entries" in HAReadOnlyClient._ALLOWED_WS_TYPES
+          states = [{"entity_id": "cover.volet_salon_2", "attributes": {"friendly_name": "Rideau salon"}}]
+          registry = [{"entity_id": "cover.volet_salon_2", "aliases": [None, "Volet salon"]}]
+          assert resolve_entity("Pourquoi volet salon ?", states, registry)["entity_id"] == "cover.volet_salon_2"
+          print("Published image digest, launcher, version and alias resolution verified")
+          '
