@@ -40,3 +40,15 @@ jobs:
             exit 0
           fi
           jq '{name, visibility}' "$RUNNER_TEMP/investigator-packages.json"
+      - name: Check proposed test package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url="https://api.github.com/users/brunofoxmulder/packages/container/elise-investigator-rc15-test"
+          status=$(curl -sS -o "$RUNNER_TEMP/rc15-test-package.json" -w '%{http_code}' \
+            -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GH_TOKEN" "$url")
+          if [ "$status" = 200 ]; then
+            jq '{name, visibility}' "$RUNNER_TEMP/rc15-test-package.json"
+          else
+            echo "Proposed test package visibility not verified (GitHub HTTP $status)."
+          fi
