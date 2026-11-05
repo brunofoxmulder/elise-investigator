@@ -1,0 +1,55 @@
+name: Verify RC15 isolated image
+
+on:
+  pull_request:
+    paths:
+      - 'elise_investigator/**'
+      - 'tests/**'
+      - '.github/workflows/verify-rc15-isolated.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build isolated candidate (no registry push)
+        run: |
+          docker build --file elise_investigator/Dockerfile.rc15_ha202611 \
+            --build-arg BUILD_VERSION=0.3.0-rc.15 --build-arg BUILD_ARCH=amd64 \
+            --tag investigator-rc15-local ./elise_investigator
+      - name: Verify image content and resolver
+        run: |
+          docker image inspect investigator-rc15-local --format '{{.Id}} {{.Architecture}}'
+          docker run --rm --entrypoint python3 investigator-rc15-local -c '
+          import pathlib
+          import main_v2_rc15_ha202611 as candidate
+          from conversation import ConversationResolutionError, resolve_entity
+          from ha_client import HAReadOnlyClient
+          assert candidate.VERSION == "0.3.0-rc.15"
+          assert "main_v2_rc15_ha202611.py" in pathlib.Path("/run.sh").read_text()
+          assert "config/entity_registry/get_entries" in HAReadOnlyClient._ALLOWED_WS_TYPES
+          states = [{"entity_id": "cover.volet_salon_2", "attributes": {"friendly_name": "Salon volet"}}]
+          registry = [{"entity_id": "cover.volet_salon_2", "aliases": [None, "Volet salon"]}]
+          assert resolve_entity("Pourquoi le volet salon est ferme?", states, registry)["entity_id"] == "cover.volet_salon_2"
+          print("RC15 image content and alias resolver verified")
+          '
+      - name: Verify API contract in Home Assistant release containers
+        run: |
+          for version in 2026.10.4 2026.11.0; do
+            echo "Checking Home Assistant $version"
+            docker run --rm --entrypoint python3 "ghcr.io/home-assistant/home-assistant:${version}" -c '
+          import inspect
+          from homeassistant.components.config import entity_registry as registry
+          from homeassistant.helpers import entity_registry as helper
+          source = inspect.getsource(registry)
+          assert "config/entity_registry/get_entries" in source
+          assert "entry.extended_dict" in source
+          entry_source = inspect.getsource(helper.RegistryEntry)
+          assert "def extended_dict" in entry_source and "aliases" in entry_source
+          print("Extended entity registry API contract verified")
+          '
+          done
