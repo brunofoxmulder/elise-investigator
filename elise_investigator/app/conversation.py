@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import logging
 import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
@@ -8,6 +9,8 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from models import InvestigationRequest
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(slots=True)
@@ -111,7 +114,11 @@ def _entity_rows(states: list[dict[str, Any]]) -> list[dict[str, str]]:
     return rows
 
 
-def resolve_entity(question: str, states: list[dict[str, Any]]) -> dict[str, str]:
+def resolve_entity(
+    question: str,
+    states: list[dict[str, Any]],
+    registry: list[dict[str, Any]] | None = None,
+) -> dict[str, str]:
     """Resolve a natural-language entity mention conservatively.
 
     Exact entity IDs and full friendly-name phrases win. Token matching is only a fallback,
@@ -120,24 +127,32 @@ def resolve_entity(question: str, states: list[dict[str, Any]]) -> dict[str, str
     qnorm = _norm(question)
     qtokens = _content_tokens(question)
     scored: list[tuple[tuple[int, int, int], dict[str, str]]] = []
+    aliases_by_id: dict[str, list[str]] = {}
+    for entry in registry or []:
+        if not isinstance(entry, dict):
+            continue
+        entity_id = entry.get("entity_id")
+        aliases = entry.get("aliases")
+        if isinstance(entity_id, str) and isinstance(aliases, (list, tuple, set)):
+            aliases_by_id[entity_id] = [a for a in aliases if isinstance(a, str) and a.strip()]
 
     for row in _entity_rows(states):
         entity_id = row["entity_id"]
         name = row["name"]
         id_norm = _norm(entity_id)
-        name_norm = _norm(name)
-        name_tokens = _content_tokens(name)
-
         if id_norm and id_norm in qnorm:
-            score = (0, -len(id_norm), 0)
-        elif name_norm and re.search(rf"(?<![a-z0-9]){re.escape(name_norm)}(?![a-z0-9])", qnorm):
-            score = (1, -len(name_norm), 0)
-        elif name_tokens and name_tokens.issubset(qtokens):
-            # Prefer the most specific name, then the one with the least extra wording.
-            score = (2, -len(name_tokens), len(_words(name)))
-        else:
+            scored.append(((0, -len(id_norm), 0), row))
             continue
-        scored.append((score, row))
+        scores = []
+        for candidate in [name, *aliases_by_id.get(entity_id, [])]:
+            candidate_norm = _norm(candidate)
+            candidate_tokens = _content_tokens(candidate)
+            if candidate_norm and re.search(rf"(?<![a-z0-9]){re.escape(candidate_norm)}(?![a-z0-9])", qnorm):
+                scores.append((1, -len(candidate_norm), 0))
+            elif candidate_tokens and candidate_tokens.issubset(qtokens):
+                scores.append((2, -len(candidate_tokens), len(_words(candidate))))
+        if scores:
+            scored.append((min(scores), row))
 
     if not scored:
         raise ConversationResolutionError(
@@ -246,7 +261,13 @@ async def build_investigation_request(
         raise ValueError("La question est vide.")
 
     states = await ha.get_all_states()
-    entity = resolve_entity(text, states)
+    try:
+        registry = await ha.list_entity_registry()
+    except Exception:
+        # Registry access is optional; preserve the existing RC14 resolver.
+        _LOGGER.warning("Entity aliases unavailable; using existing names", exc_info=True)
+        registry = []
+    entity = resolve_entity(text, states, registry)
     cfg = await ha.get_config()
     tz_name = str(cfg.get("time_zone") or "UTC")
     try:
@@ -270,3 +291,4 @@ async def build_investigation_request(
         "time_zone": tz.key,
     }
     return request, interpretation
+
